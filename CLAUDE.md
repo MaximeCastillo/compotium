@@ -14,9 +14,11 @@ pourquoi : **`DECISIONS.md`**. Plan vivant : **`ROADMAP.md`**.
 
 ## Stack (décidée — ne pas re-challenger)
 
-**Expo** (managed workflow) · **React Native** · **TypeScript** (strict) ·
-**Expo Router** (routing par fichiers, comme le App Router de Next.js) ·
-**React Native Reanimated** (animations) · **expo-haptics** (retour tactile).
+**Expo SDK 54** (managed workflow, compatible **Expo Go** des stores) · **React Native** ·
+**TypeScript** (strict). Base `blank-typescript`, un seul écran au MVP. Animations via
+**React Native Reanimated** et retour tactile via **expo-haptics** (ajoutés au moment de
+construire l'écran). **Expo Router** repoussé au 1ᵉʳ 2ᵉ écran (YAGNI — voir `DECISIONS.md`).
+**Development build** prévu à la V2 (module natif « Ne pas déranger »).
 **Android d'abord** pour dev/test (pas d'iPhone dispo) ; **iOS gardé ouvert par
 construction** — même code, portage plus tard. Pas de backend au MVP : aucun secret
 côté client.

@@ -55,3 +55,24 @@ couper les notifications »** pendant le compte à rebours.
 (ni iOS, ni Android — l'API n'existe pas). En revanche le « Ne pas déranger » est
 pilotable sur Android avec une permission utilisateur ; sur iOS ça passera par Focus /
 Screen Time. C'est le cœur d'apprentissage de la V2.
+
+## 2026-08-08 — Expo Go plafonne au SDK 54 → on aligne le projet sur SDK 54
+
+**Contexte.** `create-expo-app` génère du SDK 57, mais l'Expo Go des stores ne lit que
+le **SDK 54** (le nouveau SDK n'est pas encore déployé sur les stores ; Expo pousse
+désormais les *development builds* pour le vrai dev).
+**Décision.** Développer le MVP en **SDK 54**, sur base `blank-typescript`, lancé dans
+Expo Go.
+**Pourquoi.** Chemin le plus rapide vers « app dans la main ce soir », sans compte ni
+build. Le MVP (tap + compte à rebours + haptique) n'a besoin de rien qu'Expo Go n'ait
+déjà. On migrera vers un **development build** à la V2, quand un module natif (« Ne pas
+déranger ») le rendra obligatoire. Remplace le SDK 57 du scaffold initial.
+
+## 2026-08-08 — Démarrer sans Expo Router (YAGNI)
+
+**Contexte.** La base blank n'embarque pas de routeur ; l'app MVP tient sur un seul écran.
+**Décision.** Pas de routeur au MVP (un `App.tsx` unique) ; on ajoutera **Expo Router**
+au premier vrai 2ᵉ écran (réglages en V2).
+**Pourquoi.** Minimalisme / YAGNI : un routeur pour un seul écran est du poids inutile.
+Ajuste la mention « Expo Router » de la stack initiale — on le réintroduit dès qu'un
+besoin concret apparaît.
