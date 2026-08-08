@@ -16,7 +16,8 @@ Relire en début de session. Retirer un item dès qu'il est livré (le résumer 
 
 ## Plus tard / idées
 
-- **Dev build (Skia)** : vraie désintégration en particules + fond liquide/nébuleuse.
+- **Dev build (Skia)** : vraie désintégration en particules + fond liquide/nébuleuse +
+  halo « Gargantua » (style Interstellar : trou sombre, disque lumineux asymétrique).
 - V2 : **« Ne pas déranger »** pendant le timer (permission Android ; iOS via Focus/
   Screen Time).
 - Persistance du timer si l'app passe en arrière-plan / se ferme.

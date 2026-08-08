@@ -5,11 +5,11 @@ import { colors } from '../theme/colors';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-const SIZE = 66; // clearly smaller than the +5 button
-const STROKE = 3;
+const SIZE = 116; // big enough that the ring stays visible around a fingertip
+const STROKE = 5;
 const R = (SIZE - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * R;
-const HOLD_MS = 1500; // hold this long to confirm the stop
+const HOLD_MS = 1000; // hold ~1s to confirm the stop
 
 type StopButtonProps = {
   running: boolean;
@@ -129,7 +129,7 @@ export function StopButton({ running, onStop }: StopButtonProps) {
 
 const styles = StyleSheet.create({
   slot: {
-    height: 96,
+    height: 140,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -140,9 +140,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   glyph: {
-    width: 15,
-    height: 15,
-    borderRadius: 4,
+    width: 18,
+    height: 18,
+    borderRadius: 5,
     backgroundColor: colors.stopGlyph,
   },
 });
