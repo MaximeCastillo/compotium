@@ -1,7 +1,8 @@
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView, StyleSheet, View } from 'react-native';
 import { CountdownDisplay } from './src/components/CountdownDisplay';
 import { PulsingBackground } from './src/components/PulsingBackground';
+import { StopButton } from './src/components/StopButton';
 import { TapButton } from './src/components/TapButton';
 import { useCountdown } from './src/hooks/useCountdown';
 import { colors } from './src/theme/colors';
@@ -16,10 +17,8 @@ export default function App() {
       <SafeAreaView style={styles.safe}>
         <View style={styles.content}>
           <CountdownDisplay minutes={minutes} seconds={seconds} isRunning={isRunning} />
-          <TapButton isRunning={isRunning} onPress={addFiveMinutes} onLongPress={reset} />
-          <Text style={styles.hint}>
-            {isRunning ? 'Tapote pour +5 · appui long pour arrêter' : 'Tapote pour te poser'}
-          </Text>
+          <TapButton isRunning={isRunning} onPress={addFiveMinutes} />
+          <StopButton running={isRunning} onStop={reset} />
         </View>
       </SafeAreaView>
     </View>
@@ -38,11 +37,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 56,
-  },
-  hint: {
-    color: colors.hint,
-    fontSize: 14,
-    letterSpacing: 0.3,
+    gap: 40,
   },
 });

@@ -6,18 +6,17 @@ import { colors, durations } from '../theme/colors';
 type TapButtonProps = {
   isRunning: boolean;
   onPress: () => void;
-  onLongPress: () => void;
 };
 
-const SIZE = 224; // the button circle
-const GLOW = 320; // the soft aura behind it
+const SIZE = 200; // the button circle (slightly smaller than before)
+const GLOW = 360; // the eclipse corona canvas — button edge sits at SIZE/GLOW
 
 /**
- * The single gesture of the app. It breathes gently on its own and sinks a
- * little when pressed. A soft radial glow (SVG) sits behind it — a crisp
- * circle with a diffuse halo, no polygonal Android elevation shadow.
+ * The single gesture of the app. It breathes gently and sinks when pressed.
+ * Behind it, an SVG "eclipse" corona: a luminous ring hugging the button's
+ * edge and fading outward — a crisp circle, no polygonal Android shadow.
  */
-export function TapButton({ isRunning, onPress, onLongPress }: TapButtonProps) {
+export function TapButton({ isRunning, onPress }: TapButtonProps) {
   const breath = useRef(new Animated.Value(0)).current;
   const press = useRef(new Animated.Value(0)).current;
 
@@ -37,36 +36,38 @@ export function TapButton({ isRunning, onPress, onLongPress }: TapButtonProps) {
   };
 
   const scale = Animated.multiply(
-    breath.interpolate({ inputRange: [0, 1], outputRange: [1, 1.045] }),
+    breath.interpolate({ inputRange: [0, 1], outputRange: [1, 1.04] }),
     press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.94] }),
   );
-  const glowOpacity = breath.interpolate({ inputRange: [0, 1], outputRange: [0.55, 1] });
-  const glowScale = breath.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1.1] });
+  // Keep the corona near the edge: only a whisper of breathing on the halo.
+  const coronaOpacity = breath.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] });
+  const coronaScale = breath.interpolate({ inputRange: [0, 1], outputRange: [0.99, 1.05] });
+
+  const peak = isRunning ? 1 : 0.8; // corona brightness
 
   return (
     <View style={styles.wrapper}>
       <Animated.View
         pointerEvents="none"
-        style={[styles.glow, { opacity: glowOpacity, transform: [{ scale: glowScale }] }]}
+        style={[styles.glow, { opacity: coronaOpacity, transform: [{ scale: coronaScale }] }]}
       >
         <Svg width={GLOW} height={GLOW}>
           <Defs>
-            <RadialGradient id="buttonGlow" cx="50%" cy="50%" r="50%">
-              <Stop offset="0%" stopColor={colors.auraTeal} stopOpacity={isRunning ? 0.5 : 0.32} />
-              <Stop offset="55%" stopColor={colors.auraTeal} stopOpacity={0.12} />
+            <RadialGradient id="eclipse" cx="50%" cy="50%" r="50%">
+              <Stop offset="0%" stopColor={colors.auraTeal} stopOpacity={0.06} />
+              <Stop offset="50%" stopColor={colors.auraTeal} stopOpacity={0.06} />
+              <Stop offset="55%" stopColor={colors.auraTeal} stopOpacity={0.5 * peak} />
+              <Stop offset="59%" stopColor={colors.auraTeal} stopOpacity={0.95 * peak} />
+              <Stop offset="64%" stopColor={colors.auraTeal} stopOpacity={0.35 * peak} />
+              <Stop offset="80%" stopColor={colors.auraTeal} stopOpacity={0.1 * peak} />
               <Stop offset="100%" stopColor={colors.auraTeal} stopOpacity={0} />
             </RadialGradient>
           </Defs>
-          <Rect x="0" y="0" width={GLOW} height={GLOW} fill="url(#buttonGlow)" />
+          <Rect x="0" y="0" width={GLOW} height={GLOW} fill="url(#eclipse)" />
         </Svg>
       </Animated.View>
 
-      <Pressable
-        onPress={onPress}
-        onLongPress={onLongPress}
-        onPressIn={() => animatePress(1)}
-        onPressOut={() => animatePress(0)}
-      >
+      <Pressable onPress={onPress} onPressIn={() => animatePress(1)} onPressOut={() => animatePress(0)}>
         <Animated.View style={[styles.button, isRunning && styles.buttonActive, { transform: [{ scale }] }]}>
           <Text style={styles.plus}>+5</Text>
           <Text style={styles.unit}>min</Text>
@@ -103,7 +104,7 @@ const styles = StyleSheet.create({
   },
   plus: {
     color: colors.buttonPlus,
-    fontSize: 56,
+    fontSize: 52,
     fontWeight: '200',
   },
   unit: {

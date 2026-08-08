@@ -23,14 +23,16 @@ export const colors = {
   buttonPlus: '#5EEAD4',
   buttonUnit: '#5B6C86',
 
-  // Helper text.
-  hint: '#48586F',
+  // Stop button (hold-to-stop ring).
+  stopTrack: 'rgba(120, 150, 190, 0.16)',
+  stopProgress: '#5EEAD4',
+  stopGlyph: 'rgba(180, 200, 230, 0.5)',
 } as const;
 
 // Animation timings, in milliseconds. Slow = calm.
 export const durations = {
   backgroundBreath: 5200, // one full in/out breath of the aura
   buttonBreath: 2800, // the button's gentle heartbeat
-  digitDissolve: 460, // half of a digit's fall-and-fade transition
+  digitDissolve: 200, // one half (out or in) of a digit's fall-and-fade swap
   colonPulse: 1000, // the colon breathing once per second
 } as const;

@@ -21,27 +21,31 @@ export function CountdownDisplay({ minutes, seconds, isRunning }: CountdownDispl
 }
 
 /**
- * A single digit that dissolves on change: the old glyph fades and drifts
- * down, then the new one descends from above and settles. The two layers
- * never overlap (staggered opacity), so there is no bright flash.
- *
- * `settledRef` always holds the last target value, so even rapid changes
- * pick the correct "previous" glyph — no stray digit.
+ * One digit, one glyph on screen at any instant. On change it falls & fades
+ * out, we swap the character while invisible, then it rises & fades back in.
+ * Because there is a single layer, two glyphs can NEVER overlap — the old
+ * "flash / ghost digit" is structurally impossible.
  */
 function Digit({ value, active }: { value: string; active: boolean }) {
-  const [pair, setPair] = useState({ previous: value, current: value });
-  const anim = useRef(new Animated.Value(1)).current; // 1 = settled
-  const settledRef = useRef(value);
+  const [shown, setShown] = useState(value);
+  const shownRef = useRef(value);
+  const anim = useRef(new Animated.Value(1)).current; // 1 = fully shown, 0 = swap point
 
   useEffect(() => {
-    if (value === settledRef.current) return;
-    setPair({ previous: settledRef.current, current: value });
-    settledRef.current = value;
-    anim.stopAnimation(() => {
-      anim.setValue(0);
+    if (value === shownRef.current) return;
+    const target = value;
+    Animated.timing(anim, {
+      toValue: 0,
+      duration: durations.digitDissolve,
+      easing: Easing.in(Easing.cubic),
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (!finished) return;
+      shownRef.current = target;
+      setShown(target);
       Animated.timing(anim, {
         toValue: 1,
-        duration: durations.digitDissolve * 2,
+        duration: durations.digitDissolve,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }).start();
@@ -51,36 +55,13 @@ function Digit({ value, active }: { value: string; active: boolean }) {
   }, [value]);
 
   const color = active ? colors.digitBright : colors.digitDim;
-
-  // Outgoing glyph: visible then fades out in the first half, drifting down.
-  const outOpacity = anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 0, 0] });
-  const outTranslate = anim.interpolate({ inputRange: [0, 1], outputRange: [0, 18] });
-  const outScale = anim.interpolate({ inputRange: [0, 1], outputRange: [1, 0.8] });
-
-  // Incoming glyph: appears only in the second half, descending into place.
-  const inOpacity = anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 0, 1] });
-  const inTranslate = anim.interpolate({ inputRange: [0, 1], outputRange: [-18, 0] });
-  const inScale = anim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] });
+  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [12, 0] });
+  const scale = anim.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] });
 
   return (
     <View style={styles.digitBox}>
-      <Animated.Text
-        style={[
-          styles.digit,
-          styles.digitLayer,
-          { color, opacity: outOpacity, transform: [{ translateY: outTranslate }, { scale: outScale }] },
-        ]}
-      >
-        {pair.previous}
-      </Animated.Text>
-      <Animated.Text
-        style={[
-          styles.digit,
-          styles.digitLayer,
-          { color, opacity: inOpacity, transform: [{ translateY: inTranslate }, { scale: inScale }] },
-        ]}
-      >
-        {pair.current}
+      <Animated.Text style={[styles.digit, { color, opacity: anim, transform: [{ translateY }, { scale }] }]}>
+        {shown}
       </Animated.Text>
     </View>
   );
@@ -93,18 +74,8 @@ function Colon({ active }: { active: boolean }) {
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, {
-          toValue: 0.35,
-          duration: durations.colonPulse / 2,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulse, {
-          toValue: 1,
-          duration: durations.colonPulse / 2,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
+        Animated.timing(pulse, { toValue: 0.35, duration: durations.colonPulse / 2, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: durations.colonPulse / 2, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
       ]),
     );
     loop.start();
@@ -113,11 +84,7 @@ function Colon({ active }: { active: boolean }) {
 
   return (
     <Animated.Text
-      style={[
-        styles.digit,
-        styles.colon,
-        { color: active ? colors.digitBright : colors.digitDim, opacity: pulse },
-      ]}
+      style={[styles.digit, styles.colon, { color: active ? colors.digitBright : colors.digitDim, opacity: pulse }]}
     >
       :
     </Animated.Text>
@@ -136,9 +103,6 @@ const styles = StyleSheet.create({
     height: DIGIT_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  digitLayer: {
-    position: 'absolute',
   },
   digit: {
     fontSize: 80,
