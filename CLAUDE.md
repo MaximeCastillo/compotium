@@ -70,10 +70,17 @@ capacités du téléphone.
 ## Vérifier « pour de vrai » (jamais valider à l'œil)
 
 1. **Types** : `npx tsc --noEmit` (zéro erreur).
-2. **Lint** : `npx expo lint`.
-3. **Santé du projet** : `npx expo-doctor`.
+2. **Build (bundle)** : `npx expo export --platform android --output-dir /tmp/compotium-export`
+   — compile tout le graphe de modules ; attrape imports/exports cassés et deps
+   circulaires que `tsc` ne voit pas. À lancer **au moins avant un commit notable et
+   après un gros refactor**.
+3. **Lint** : `npx expo lint`.
 4. **Le vrai test** : ça tourne **sur le téléphone** via Expo Go (scan du QR).
 Pas de tests unitaires au MVP (YAGNI) ; on en ajoute dès qu'une logique le mérite.
+
+**Piège Fast Refresh** : après un gros refactor (renommage d'exports, forme d'un hook,
+ajout d'un contexte), Metro peut servir du code obsolète (erreurs `undefined`/fantômes).
+Réflexe : redémarrer avec **`npx expo start -c`**.
 
 ## Sécurité : léger en process, sérieux sur les fondamentaux
 
