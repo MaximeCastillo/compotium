@@ -15,6 +15,41 @@ Format :
 
 ---
 
+## 2026-08-08 — De la page blanche à l'app aboutie (grosse session)
+
+**Construit.** Compotium, complet dans Expo Go : écran unique avec fond spatial vivant,
+bouton `+5` à halo « éclipse », compte à rebours en dissolution, bouton **STOP double-tap**
+(arme puis confirme + désintégration), **sonnerie de fin** (court/long, son cinématique
+synthétisé), **réglages persistés** (durée min/sec avec saisie clavier + stepper,
+keep-awake, thème, son) et **2 thèmes** basculables (Calme spatial / Énergie solaire).
+
+**Appris.**
+- 🆕 **Bac à sable mobile** ; **Expo Go vs development build** ; pourquoi le SDK 57 ne
+  passe pas dans Expo Go (→ SDK 54).
+- 🆕 **Composants natifs** (View/Text/Pressable), **styles = objets JS** (Flexbox par
+  défaut, pas de `px`).
+- 🆕 **API `Animated`** (boucles de respiration, `useNativeDriver`) ; le liquide/particules
+  réels demandent **Skia** (dev build).
+- 🆕 **react-native-svg** pour des dégradés radiaux doux + astuce perf **« rasteriser
+  petit, agrandir au GPU »**.
+- 🆕 **Séparer logique/UI** (hook `useCountdown`) ; **theming par contexte**
+  (`ThemeProvider`/`useTheme` + `makeStyles`).
+- 🆕 **Re-renders & perf** : pourquoi start/stop figeait (fond re-rendu) → découplage +
+  mémoïsation.
+- 🆕 **Piège Fast Refresh** après gros refactor → `expo start -c`.
+- 🆕 **Vérif élargie** : `tsc` **+ build bundle** (`expo export`).
+- 🆕 **Persistance locale** (AsyncStorage) ; **réalité des timers en arrière-plan**
+  (timestamp + notifications, pas de `setInterval` en fond).
+
+**Victoires / galères.** Nom trouvé (Compotium) ; identité visuelle validée et verrouillée
+(2 thèmes). Boucle de feedback très efficace (tu testes sur le tel, tu décris, je corrige).
+Galères instructives : compat Expo Go/SDK, bug d'affichage du compteur (course de rendu à
+2 calques → réécrit en 1 calque), micro-freezes (rasterisation SVG).
+
+**Prochaine fois.** Le **timer robuste en arrière-plan** (`AppState` + timestamp de fin +
+`expo-notifications`) — ouvre la voie à la V2 « couper les notifs ». Puis icône/splash, et
+le passage au **development build (Skia)** pour le fond liquide + les vraies particules.
+
 ## 2026-08-08 — Kickoff de Compotium
 
 **Construit.** Le cadrage du projet : nom, stack, constitution (`CLAUDE.md`) et doc
