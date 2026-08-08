@@ -15,9 +15,9 @@ import { themes } from './src/theme/colors';
 import { ThemeProvider } from './src/theme/ThemeContext';
 
 export default function App() {
-  const { keepAwake, setKeepAwake, tapAmount, setTapAmount, tapUnit, setTapUnit, themeName, setThemeName } = useSettings();
+  const { keepAwake, setKeepAwake, tapAmount, setTapAmount, tapUnit, setTapUnit, themeName, setThemeName, soundLength, setSoundLength } = useSettings();
   const incrementSeconds = tapUnit === 'min' ? tapAmount * 60 : tapAmount;
-  const { isRunning, minutes, seconds, addTime, reset } = useCountdown(incrementSeconds);
+  const { isRunning, minutes, seconds, addTime, reset } = useCountdown(incrementSeconds, soundLength);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
@@ -52,6 +52,8 @@ export default function App() {
             onChangeTapUnit={setTapUnit}
             themeName={themeName}
             onChangeTheme={setThemeName}
+            soundLength={soundLength}
+            onChangeSound={setSoundLength}
             onClose={() => setSettingsOpen(false)}
           />
         </View>

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { type Palette, type ThemeName } from '../theme/colors';
 import { useTheme } from '../theme/ThemeContext';
-import type { TapUnit } from '../hooks/useSettings';
+import type { SoundLength, TapUnit } from '../hooks/useSettings';
 
 const MIN_AMOUNT = 1;
 const MAX_AMOUNT = 60;
@@ -18,11 +18,13 @@ type SettingsSheetProps = {
   onChangeTapUnit: (value: TapUnit) => void;
   themeName: ThemeName;
   onChangeTheme: (value: ThemeName) => void;
+  soundLength: SoundLength;
+  onChangeSound: (value: SoundLength) => void;
   onClose: () => void;
 };
 
 export function SettingsSheet(props: SettingsSheetProps) {
-  const { visible, keepAwake, onToggleKeepAwake, tapAmount, onChangeTapAmount, tapUnit, onChangeTapUnit, themeName, onChangeTheme, onClose } = props;
+  const { visible, keepAwake, onToggleKeepAwake, tapAmount, onChangeTapAmount, tapUnit, onChangeTapUnit, themeName, onChangeTheme, soundLength, onChangeSound, onClose } = props;
   const colors = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
@@ -85,6 +87,15 @@ export function SettingsSheet(props: SettingsSheetProps) {
             <View style={styles.themeSegment}>
               <Segmented<ThemeName> label="Calme spatial" value="spatial" current={themeName} onSelect={onChangeTheme} styles={styles} grow />
               <Segmented<ThemeName> label="Énergie solaire" value="solar" current={themeName} onSelect={onChangeTheme} styles={styles} grow />
+            </View>
+          </View>
+
+          {/* End sound */}
+          <View style={styles.block}>
+            <Text style={styles.label}>Son de fin</Text>
+            <View style={styles.themeSegment}>
+              <Segmented<SoundLength> label="Court" value="short" current={soundLength} onSelect={onChangeSound} styles={styles} grow />
+              <Segmented<SoundLength> label="Long" value="long" current={soundLength} onSelect={onChangeSound} styles={styles} grow />
             </View>
           </View>
 

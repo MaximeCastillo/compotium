@@ -1,16 +1,18 @@
 import { useAudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
+import type { SoundLength } from './useSettings';
 
 const MAX_SECONDS = 60 * 60; // a session is capped at 60 minutes
-const CHIME = require('../../assets/sounds/chime.wav');
+const CHIME_SHORT = require('../../assets/sounds/chime.wav');
+const CHIME_LONG = require('../../assets/sounds/chime-long.wav');
 
 /**
  * The timer's brain: it knows how time flows, not how it looks.
  * State is a single number — seconds left — and everything derives from it.
- * `incrementSeconds` (how much one tap adds) comes from user settings.
+ * `incrementSeconds` (how much one tap adds) and `soundLength` come from settings.
  */
-export function useCountdown(incrementSeconds: number) {
+export function useCountdown(incrementSeconds: number, soundLength: SoundLength) {
   const [remaining, setRemaining] = useState(0);
   const isRunning = remaining > 0;
   const isAtMax = remaining >= MAX_SECONDS;
@@ -19,8 +21,9 @@ export function useCountdown(incrementSeconds: number) {
   const previousRemaining = useRef(0);
   const manualStop = useRef(false);
 
-  // The gentle chime played when a session completes.
-  const chime = useAudioPlayer(CHIME);
+  // Both chimes are preloaded; we play whichever the setting selects.
+  const shortChime = useAudioPlayer(CHIME_SHORT);
+  const longChime = useAudioPlayer(CHIME_LONG);
 
   // The ticking clock. Recreated only when we cross the running boundary.
   useEffect(() => {
@@ -35,12 +38,13 @@ export function useCountdown(incrementSeconds: number) {
   useEffect(() => {
     const endedNaturally = previousRemaining.current > 0 && remaining === 0 && !manualStop.current;
     if (endedNaturally) {
+      const chime = soundLength === 'long' ? longChime : shortChime;
       chime.seekTo(0);
       chime.play();
     }
     if (remaining === 0) manualStop.current = false; // clear once handled
     previousRemaining.current = remaining;
-  }, [remaining, chime]);
+  }, [remaining, soundLength, shortChime, longChime]);
 
   // One tap adds the configured amount, never above the 60-minute cap.
   const addTime = () => {

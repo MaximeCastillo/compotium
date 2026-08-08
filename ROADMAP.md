@@ -24,6 +24,8 @@ Relire en début de session. Retirer un item dès qu'il est livré (le résumer 
 
 ## Livré récemment
 
+- 2026-08-08 : **Réglage son Court / Long** (version longue ~6,8 s du son cinématique) ;
+  palettes validées & verrouillées.
 - 2026-08-08 : **2 thèmes** (Calme spatial / Énergie solaire) via ThemeContext, **saisie
   clavier** de la durée, **son cinématique grave** (façon THX/Inception), **fix perf**
   (fond découplé du timer, plus de micro-freeze au start/stop).

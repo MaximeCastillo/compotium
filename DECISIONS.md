@@ -95,3 +95,12 @@ grands dégradés SVG du fond.
 un changement d'état du timer.
 **Pourquoi.** Le re-render SVG était la cause des saccades. Le fond respire en continu,
 indépendamment du minuteur.
+
+## 2026-08-08 — Palettes validées (verrouillées)
+
+**Contexte.** Les deux thèmes (Calme spatial bleu-vert profond / Énergie solaire feu)
+correspondent exactement à l'intention produit.
+**Décision.** Les valeurs des palettes `spatial` et `solar` sont **validées** ; on n'y
+touche plus sauf raison explicite.
+**Pourquoi.** L'identité visuelle est trouvée et fait partie de l'âme de Compotium
+(désactiver les pollutions de l'esprit dans un espace apaisant). Éviter de dériver.
