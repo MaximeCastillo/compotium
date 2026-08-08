@@ -5,18 +5,13 @@ Relire en début de session. Retirer un item dès qu'il est livré (le résumer 
 
 ## En cours
 
-- [ ] Scaffolder l'app Expo (TypeScript + Expo Router) et **la faire tourner sur le
-  téléphone** via Expo Go (le premier « ça marche ! »).
+- [ ] Ressenti sur téléphone : ajuster couleurs / tailles / hint selon le test réel.
 
 ## À faire (prochain — MVP)
 
-- [ ] Écran unique, épuré et moderne (fond calme, un bouton central).
-- [ ] Bouton **tap → +5 min** (incréments de 5).
-- [ ] **Compte à rebours** lisible et doux ; un tap pendant qu'il tourne ajoute 5 min.
-- [ ] **Retour haptique** au tap (expo-haptics) — la sensation « native » qui n'existe
-  pas sur le web.
-- [ ] Fin de timer en douceur (vibration/animation apaisante), retour à l'état de repos.
-- [ ] Polish des animations (Reanimated).
+- [ ] Polish des animations (Reanimated) : pulsation douce du bouton, transition du chiffre.
+- [ ] Empêcher la veille de l'écran pendant le décompte (expo-keep-awake).
+- [ ] Icône & splash aux couleurs de Compotium.
 
 ## Plus tard / idées
 
@@ -28,5 +23,8 @@ Relire en début de session. Retirer un item dès qu'il est livré (le résumer 
 
 ## Livré récemment
 
+- 2026-08-08 : **MVP écran Compotium** — fond calme, bouton `+5 min`, compte à rebours,
+  retour haptique (tap / fin / reset par appui long). Tourne sur Android via Expo Go.
+- 2026-08-08 : **1er run** — app scaffoldée (Expo SDK 54) et affichée sur le téléphone.
 - 2026-08-08 : **Kickoff** — nom (Compotium), stack décidée (Expo + RN + TS), constitution
   et doc vivante posées.
