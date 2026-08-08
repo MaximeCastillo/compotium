@@ -24,6 +24,9 @@ Relire en début de session. Retirer un item dès qu'il est livré (le résumer 
 
 ## Livré récemment
 
+- 2026-08-08 : **2 thèmes** (Calme spatial / Énergie solaire) via ThemeContext, **saisie
+  clavier** de la durée, **son cinématique grave** (façon THX/Inception), **fix perf**
+  (fond découplé du timer, plus de micro-freeze au start/stop).
 - 2026-08-08 : **Réglages durée par tap** (stepper + choix min/sec, défaut 5 min),
   **STOP en double-tap** (arme puis confirme + désintégration), carillon adouci &
   allégé, retrait des vibrations de fin/stop, fix barre d'état (safe-area-context),

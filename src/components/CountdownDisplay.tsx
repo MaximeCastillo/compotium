@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
-import { colors, durations } from '../theme/colors';
+import { durations } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 
 type CountdownDisplayProps = {
   minutes: string; // always two chars, e.g. "05" (capped at "60")
@@ -27,6 +28,7 @@ export function CountdownDisplay({ minutes, seconds, isRunning }: CountdownDispl
  * "flash / ghost digit" is structurally impossible.
  */
 function Digit({ value, active }: { value: string; active: boolean }) {
+  const colors = useTheme();
   const [shown, setShown] = useState(value);
   const shownRef = useRef(value);
   const anim = useRef(new Animated.Value(1)).current; // 1 = fully shown, 0 = swap point
@@ -69,6 +71,7 @@ function Digit({ value, active }: { value: string; active: boolean }) {
 
 /** The separator, breathing softly once per second. */
 function Colon({ active }: { active: boolean }) {
+  const colors = useTheme();
   const pulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {

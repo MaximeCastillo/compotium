@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, StyleSheet } from 'react-native';
-import { colors } from '../theme/colors';
+import { type Palette } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 
-const SIZE = 84; // clearly smaller than the +5 button
+const SIZE = 84;
 const DISARM_MS = 2500; // if not confirmed, it disarms itself
 
 type StopButtonProps = {
@@ -13,12 +14,14 @@ type StopButtonProps = {
 };
 
 /**
- * Double-tap to stop. First tap arms it (turns teal, icon becomes a check);
- * a second tap within a few seconds confirms — the timer stops and the button
- * disintegrates. No confirmation tap → it quietly disarms. It fades/scales in
- * when a timer starts and fades out if the timer ends on its own.
+ * Double-tap to stop. First tap arms it (turns to the accent color, icon
+ * becomes a check); a second tap within a few seconds confirms — the timer
+ * stops and the button disintegrates. No confirmation → it quietly disarms.
  */
 export function StopButton({ running, onStop }: StopButtonProps) {
+  const colors = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const [rendered, setRendered] = useState(running);
   const [armed, setArmed] = useState(false);
 
@@ -57,7 +60,7 @@ export function StopButton({ running, onStop }: StopButtonProps) {
 
   const confirmStop = () => {
     isDisintegrating.current = true;
-    onStop(); // stop the timer at the same instant
+    onStop();
     Animated.timing(disintegrate, { toValue: 1, duration: 480, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(({ finished }) => {
       if (finished) setRendered(false);
     });
@@ -67,7 +70,7 @@ export function StopButton({ running, onStop }: StopButtonProps) {
     if (isDisintegrating.current) return;
     if (!armed) {
       setArmed(true);
-      Haptics.selectionAsync(); // a light tick — "tap again to confirm"
+      Haptics.selectionAsync();
       pop();
       if (disarmTimer.current) clearTimeout(disarmTimer.current);
       disarmTimer.current = setTimeout(() => setArmed(false), DISARM_MS);
@@ -104,24 +107,25 @@ export function StopButton({ running, onStop }: StopButtonProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  slot: {
-    height: 128,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  button: {
-    width: SIZE,
-    height: SIZE,
-    borderRadius: SIZE / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.buttonBg,
-    borderWidth: 1,
-    borderColor: colors.buttonBorderIdle,
-  },
-  buttonArmed: {
-    borderColor: colors.stopProgress,
-    backgroundColor: 'rgba(20, 40, 44, 0.7)',
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    slot: {
+      height: 128,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    button: {
+      width: SIZE,
+      height: SIZE,
+      borderRadius: SIZE / 2,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.buttonBg,
+      borderWidth: 1,
+      borderColor: colors.buttonBorderIdle,
+    },
+    buttonArmed: {
+      borderColor: colors.stopProgress,
+      backgroundColor: colors.buttonBg,
+    },
+  });

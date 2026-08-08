@@ -1,13 +1,14 @@
-// Single source of truth for the whole visual identity of Compotium.
-// Tune the mood here and it ripples through every component.
+// Two palettes with the SAME keys. Swapping the active one re-colors the whole
+// app (see ThemeContext). Key names follow the "Calme spatial" theme but are
+// really semantic slots (aura1/2/3 = the three breathing auras, etc.).
 
-export const colors = {
-  // Deep-space background gradient (top -> middle -> bottom).
+export const spatial = {
+  // Background gradient (top -> middle -> bottom).
   bgTop: '#05070E',
   bgMid: '#0A1526',
   bgBottom: '#0B1E2E',
 
-  // Breathing auras (the "vibrant but calm" glow behind everything).
+  // Breathing auras.
   auraTeal: '#2DD4BF',
   auraSky: '#38BDF8',
   auraGreen: '#0F766E',
@@ -16,14 +17,14 @@ export const colors = {
   digitBright: '#EAF2FF',
   digitDim: '#2B3A52',
 
-  // The tap button.
+  // Tap button.
   buttonBg: 'rgba(16, 28, 48, 0.55)',
   buttonBorderIdle: 'rgba(90, 120, 160, 0.28)',
   buttonBorderActive: '#2DD4BF',
   buttonPlus: '#5EEAD4',
   buttonUnit: '#5B6C86',
 
-  // Stop button (hold-to-stop ring).
+  // Stop button.
   stopTrack: 'rgba(120, 150, 190, 0.16)',
   stopProgress: '#5EEAD4',
   stopGlyph: 'rgba(180, 200, 230, 0.5)',
@@ -39,10 +40,49 @@ export const colors = {
   switchThumb: '#EAF2FF',
 } as const;
 
-// Animation timings, in milliseconds. Slow = calm.
+// "Énergie solaire" — same slots, warm/solar values.
+export const solar: Palette = {
+  bgTop: '#0B0503',
+  bgMid: '#1C0A05',
+  bgBottom: '#2C0F06',
+
+  auraTeal: '#FB923C', // orange flare
+  auraSky: '#FCD34D', // gold
+  auraGreen: '#DC2626', // deep red / fire
+
+  digitBright: '#FFF7ED',
+  digitDim: '#5A3A2A',
+
+  buttonBg: 'rgba(48, 20, 10, 0.55)',
+  buttonBorderIdle: 'rgba(180, 110, 60, 0.28)',
+  buttonBorderActive: '#FB923C',
+  buttonPlus: '#FDBA74',
+  buttonUnit: '#8A6650',
+
+  stopTrack: 'rgba(200, 140, 90, 0.16)',
+  stopProgress: '#FDBA74',
+  stopGlyph: 'rgba(255, 220, 190, 0.5)',
+
+  settingsIcon: 'rgba(255, 220, 190, 0.55)',
+  sheetBackdrop: 'rgba(12, 5, 2, 0.6)',
+  sheetBg: '#1A0C06',
+  sheetBorder: 'rgba(180, 110, 60, 0.2)',
+  sheetLabel: '#FFF7ED',
+  sheetSub: '#8A6650',
+  switchTrackOff: '#3A2418',
+  switchThumb: '#FFF7ED',
+};
+
+// Same keys as `spatial`, but values widened to `string` so other palettes
+// (solar, …) can hold different colors.
+export type Palette = { [K in keyof typeof spatial]: string };
+export type ThemeName = 'spatial' | 'solar';
+export const themes: Record<ThemeName, Palette> = { spatial, solar };
+
+// Animation timings, in milliseconds. Theme-independent. Slow = calm.
 export const durations = {
-  backgroundBreath: 5200, // one full in/out breath of the aura
-  buttonBreath: 2800, // the button's gentle heartbeat
-  digitDissolve: 200, // one half (out or in) of a digit's fall-and-fade swap
-  colonPulse: 1000, // the colon breathing once per second
+  backgroundBreath: 5200,
+  buttonBreath: 2800,
+  digitDissolve: 200,
+  colonPulse: 1000,
 } as const;

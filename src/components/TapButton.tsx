@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
-import { colors, durations } from '../theme/colors';
+import { durations, type Palette } from '../theme/colors';
+import { useTheme } from '../theme/ThemeContext';
 
 type TapButtonProps = {
   isRunning: boolean;
@@ -10,15 +11,17 @@ type TapButtonProps = {
   onPress: () => void;
 };
 
-const SIZE = 200; // the button circle (slightly smaller than before)
-const GLOW = 360; // the eclipse corona canvas — button edge sits at SIZE/GLOW
+const SIZE = 200;
+const GLOW = 360;
 
 /**
  * The single gesture of the app. It breathes gently and sinks when pressed.
- * Behind it, an SVG "eclipse" corona: a luminous ring hugging the button's
- * edge and fading outward — a crisp circle, no polygonal Android shadow.
+ * Behind it, an SVG "eclipse" corona hugging the button's edge.
  */
 export function TapButton({ isRunning, amount, unit, onPress }: TapButtonProps) {
+  const colors = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const breath = useRef(new Animated.Value(0)).current;
   const press = useRef(new Animated.Value(0)).current;
 
@@ -41,11 +44,10 @@ export function TapButton({ isRunning, amount, unit, onPress }: TapButtonProps) 
     breath.interpolate({ inputRange: [0, 1], outputRange: [1, 1.04] }),
     press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.94] }),
   );
-  // Keep the corona near the edge: only a whisper of breathing on the halo.
   const coronaOpacity = breath.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] });
   const coronaScale = breath.interpolate({ inputRange: [0, 1], outputRange: [0.99, 1.05] });
 
-  const peak = isRunning ? 1 : 0.8; // corona brightness
+  const peak = isRunning ? 1 : 0.8;
 
   return (
     <View style={styles.wrapper}>
@@ -79,41 +81,42 @@ export function TapButton({ isRunning, amount, unit, onPress }: TapButtonProps) 
   );
 }
 
-const styles = StyleSheet.create({
-  wrapper: {
-    width: GLOW,
-    height: GLOW,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  glow: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  button: {
-    width: SIZE,
-    height: SIZE,
-    borderRadius: SIZE / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.buttonBg,
-    borderWidth: 1,
-    borderColor: colors.buttonBorderIdle,
-  },
-  buttonActive: {
-    borderColor: colors.buttonBorderActive,
-  },
-  plus: {
-    color: colors.buttonPlus,
-    fontSize: 52,
-    fontWeight: '200',
-  },
-  unit: {
-    color: colors.buttonUnit,
-    fontSize: 15,
-    marginTop: 2,
-    letterSpacing: 4,
-    textTransform: 'uppercase',
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    wrapper: {
+      width: GLOW,
+      height: GLOW,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    glow: {
+      ...StyleSheet.absoluteFillObject,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    button: {
+      width: SIZE,
+      height: SIZE,
+      borderRadius: SIZE / 2,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.buttonBg,
+      borderWidth: 1,
+      borderColor: colors.buttonBorderIdle,
+    },
+    buttonActive: {
+      borderColor: colors.buttonBorderActive,
+    },
+    plus: {
+      color: colors.buttonPlus,
+      fontSize: 52,
+      fontWeight: '200',
+    },
+    unit: {
+      color: colors.buttonUnit,
+      fontSize: 15,
+      marginTop: 2,
+      letterSpacing: 4,
+      textTransform: 'uppercase',
+    },
+  });

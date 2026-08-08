@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { ThemeName } from '../theme/colors';
 
 export type TapUnit = 'min' | 'sec';
 
@@ -10,6 +11,16 @@ export function useSettings() {
   const [keepAwake, setKeepAwake] = useState(false);
   const [tapAmount, setTapAmount] = useState(5); // value added per tap
   const [tapUnit, setTapUnit] = useState<TapUnit>('min'); // default: 5 minutes
+  const [themeName, setThemeName] = useState<ThemeName>('spatial');
 
-  return { keepAwake, setKeepAwake, tapAmount, setTapAmount, tapUnit, setTapUnit };
+  return {
+    keepAwake,
+    setKeepAwake,
+    tapAmount,
+    setTapAmount,
+    tapUnit,
+    setTapUnit,
+    themeName,
+    setThemeName,
+  };
 }

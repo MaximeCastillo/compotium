@@ -76,3 +76,22 @@ au premier vrai 2ᵉ écran (réglages en V2).
 **Pourquoi.** Minimalisme / YAGNI : un routeur pour un seul écran est du poids inutile.
 Ajuste la mention « Expo Router » de la stack initiale — on le réintroduit dès qu'un
 besoin concret apparaît.
+
+## 2026-08-08 — Theming par contexte (2 palettes)
+
+**Contexte.** On veut plusieurs thèmes visuels (Calme spatial, Énergie solaire)
+basculables à chaud depuis les réglages.
+**Décision.** Deux palettes aux **mêmes clés** (`spatial`, `solar`) + un **ThemeContext** ;
+les composants lisent la palette active via `useTheme()`, et les styles colorés sont
+construits via `makeStyles(palette)`.
+**Pourquoi.** Une source unique par thème, bascule instantanée, aucune couleur à faire
+transiter en props. Écarté : dupliquer des composants par thème (ingérable).
+
+## 2026-08-08 — Fond découplé de l'état du timer (perf)
+
+**Contexte.** Micro-freezes au démarrage/arrêt : changer `isRunning` re-rendait les 3
+grands dégradés SVG du fond.
+**Décision.** Le fond ne dépend plus que du thème (mémoïsé) ; il ne se re-rend jamais sur
+un changement d'état du timer.
+**Pourquoi.** Le re-render SVG était la cause des saccades. Le fond respire en continu,
+indépendamment du minuteur.
