@@ -27,6 +27,16 @@ export const colors = {
   stopTrack: 'rgba(120, 150, 190, 0.16)',
   stopProgress: '#5EEAD4',
   stopGlyph: 'rgba(180, 200, 230, 0.5)',
+
+  // Settings (gear + sheet).
+  settingsIcon: 'rgba(180, 200, 230, 0.55)',
+  sheetBackdrop: 'rgba(3, 6, 12, 0.6)',
+  sheetBg: '#0E1726',
+  sheetBorder: 'rgba(90, 120, 160, 0.2)',
+  sheetLabel: '#EAF2FF',
+  sheetSub: '#5B6C86',
+  switchTrackOff: '#26303C',
+  switchThumb: '#EAF2FF',
 } as const;
 
 // Animation timings, in milliseconds. Slow = calm.

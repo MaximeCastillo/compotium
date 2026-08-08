@@ -1,8 +1,10 @@
+import { useAudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
 
 const FIVE_MINUTES = 5 * 60; // one tap grants five minutes, in seconds
 const MAX_SECONDS = 60 * 60; // a session is capped at 60 minutes
+const CHIME = require('../../assets/sounds/chime.wav');
 
 /**
  * The timer's brain: it knows how time flows, not how it looks.
@@ -15,6 +17,12 @@ export function useCountdown() {
 
   // Remember the previous value to detect the exact moment we hit zero.
   const previousRemaining = useRef(0);
+  // A manual stop also sends remaining to 0 — this flag tells the two apart
+  // so the chime only celebrates a *natural* completion.
+  const manualStop = useRef(false);
+
+  // The gentle chime played when a session completes.
+  const chime = useAudioPlayer(CHIME);
 
   // The ticking clock. Recreated only when we cross the running boundary;
   // the functional update always sees the latest value, so it stays correct.
@@ -26,13 +34,18 @@ export function useCountdown() {
     return () => clearInterval(intervalId); // drop the timer when we stop / unmount
   }, [isRunning]);
 
-  // Gentle completion feedback the instant the countdown reaches zero.
+  // Gentle feedback the instant the countdown reaches zero on its own:
+  // a soft haptic and the chime. Skipped on a manual stop.
   useEffect(() => {
-    if (previousRemaining.current > 0 && remaining === 0) {
+    const endedNaturally = previousRemaining.current > 0 && remaining === 0 && !manualStop.current;
+    if (endedNaturally) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      chime.seekTo(0);
+      chime.play();
     }
+    if (remaining === 0) manualStop.current = false; // clear once handled
     previousRemaining.current = remaining;
-  }, [remaining]);
+  }, [remaining, chime]);
 
   // One tap = +5 minutes, never above the 60-minute cap.
   const addFiveMinutes = () => {
@@ -42,8 +55,9 @@ export function useCountdown() {
     setRemaining((seconds) => Math.min(MAX_SECONDS, seconds + FIVE_MINUTES));
   };
 
-  // Long-press cancels back to rest.
+  // Manual stop (hold-to-stop): back to rest, without the completion chime.
   const reset = () => {
+    manualStop.current = true;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setRemaining(0);
   };
