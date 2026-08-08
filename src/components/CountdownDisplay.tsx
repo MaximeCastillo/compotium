@@ -45,13 +45,14 @@ function Digit({ value, active }: { value: string; active: boolean }) {
 
   const color = active ? colors.digitBright : colors.digitDim;
 
-  // Outgoing glyph: fades out, drifts down, shrinks.
-  const outOpacity = anim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
+  // Outgoing glyph: fades out in the FIRST half while drifting down.
+  const outOpacity = anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 0, 0] });
   const outTranslate = anim.interpolate({ inputRange: [0, 1], outputRange: [0, 16] });
   const outScale = anim.interpolate({ inputRange: [0, 1], outputRange: [1, 0.82] });
 
-  // Incoming glyph: fades in, descends from above, grows to full size.
-  const inOpacity = anim; // 0 -> 1
+  // Incoming glyph: fades in only in the SECOND half — so the two glyphs
+  // never overlap, which is what caused the bright "flash".
+  const inOpacity = anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 0, 1] });
   const inTranslate = anim.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] });
   const inScale = anim.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] });
 
