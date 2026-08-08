@@ -1,7 +1,8 @@
 import { useKeepAwake } from 'expo-keep-awake';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { SafeAreaView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { CountdownDisplay } from './src/components/CountdownDisplay';
 import { PulsingBackground } from './src/components/PulsingBackground';
 import { SettingsButton } from './src/components/SettingsButton';
@@ -13,37 +14,44 @@ import { useSettings } from './src/hooks/useSettings';
 import { colors } from './src/theme/colors';
 
 export default function App() {
-  const { isRunning, minutes, seconds, addFiveMinutes, reset } = useCountdown();
-  const { keepAwake, setKeepAwake } = useSettings();
+  const { keepAwake, setKeepAwake, tapAmount, setTapAmount, tapUnit, setTapUnit } = useSettings();
+  const incrementSeconds = tapUnit === 'min' ? tapAmount * 60 : tapAmount;
+  const { isRunning, minutes, seconds, addTime, reset } = useCountdown(incrementSeconds);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
-    <View style={styles.root}>
-      <PulsingBackground active={isRunning} />
-      <StatusBar style="light" />
+    <SafeAreaProvider>
+      <View style={styles.root}>
+        <PulsingBackground active={isRunning} />
+        <StatusBar style="light" />
 
-      {/* Keep the screen awake only while it matters: a running timer + the setting on. */}
-      {keepAwake && isRunning && <KeepScreenAwake />}
+        {/* Keep the screen awake only while it matters: a running timer + the setting on. */}
+        {keepAwake && isRunning && <KeepScreenAwake />}
 
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.topBar}>
-          <SettingsButton onPress={() => setSettingsOpen(true)} />
-        </View>
+        <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+          <View style={styles.topBar}>
+            <SettingsButton onPress={() => setSettingsOpen(true)} />
+          </View>
 
-        <View style={styles.content}>
-          <CountdownDisplay minutes={minutes} seconds={seconds} isRunning={isRunning} />
-          <TapButton isRunning={isRunning} onPress={addFiveMinutes} />
-          <StopButton running={isRunning} onStop={reset} />
-        </View>
-      </SafeAreaView>
+          <View style={styles.content}>
+            <CountdownDisplay minutes={minutes} seconds={seconds} isRunning={isRunning} />
+            <TapButton isRunning={isRunning} amount={tapAmount} unit={tapUnit} onPress={addTime} />
+            <StopButton running={isRunning} onStop={reset} />
+          </View>
+        </SafeAreaView>
 
-      <SettingsSheet
-        visible={settingsOpen}
-        keepAwake={keepAwake}
-        onToggleKeepAwake={setKeepAwake}
-        onClose={() => setSettingsOpen(false)}
-      />
-    </View>
+        <SettingsSheet
+          visible={settingsOpen}
+          keepAwake={keepAwake}
+          onToggleKeepAwake={setKeepAwake}
+          tapAmount={tapAmount}
+          onChangeTapAmount={setTapAmount}
+          tapUnit={tapUnit}
+          onChangeTapUnit={setTapUnit}
+          onClose={() => setSettingsOpen(false)}
+        />
+      </View>
+    </SafeAreaProvider>
   );
 }
 

@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { Animated, Dimensions, Easing, StyleSheet, View } from 'react-native';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { colors } from '../theme/colors';
@@ -25,7 +25,7 @@ type BlobConfig = {
  * auras that clearly breathe (opacity + scale) and slowly drift. Radial
  * gradients fade to full transparency, so there are no hard edges.
  */
-export function PulsingBackground({ active }: { active: boolean }) {
+function PulsingBackgroundBase({ active }: { active: boolean }) {
   const blobs: BlobConfig[] = [
     { id: 'teal', color: colors.auraTeal, core: 0.5, left: -BLOB * 0.24, top: -BLOB * 0.18, driftX: 40, driftY: 30, breathMs: 4200, driftMs: 9000, boost: 0.14 },
     { id: 'sky', color: colors.auraSky, core: 0.42, left: width - BLOB * 0.74, top: height - BLOB * 0.66, driftX: -46, driftY: -34, breathMs: 5200, driftMs: 11000, boost: 0.12 },
@@ -44,6 +44,10 @@ export function PulsingBackground({ active }: { active: boolean }) {
     </View>
   );
 }
+
+// Memoized: the background only depends on `active`, so unrelated app state
+// changes (opening settings, toggling a switch) no longer re-render it.
+export const PulsingBackground = memo(PulsingBackgroundBase);
 
 function Blob({ config, active }: { config: BlobConfig; active: boolean }) {
   const breath = useRef(new Animated.Value(0)).current;

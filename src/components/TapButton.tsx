@@ -5,6 +5,8 @@ import { colors, durations } from '../theme/colors';
 
 type TapButtonProps = {
   isRunning: boolean;
+  amount: number; // how much one tap adds (from settings)
+  unit: string; // "min" or "sec"
   onPress: () => void;
 };
 
@@ -16,7 +18,7 @@ const GLOW = 360; // the eclipse corona canvas — button edge sits at SIZE/GLOW
  * Behind it, an SVG "eclipse" corona: a luminous ring hugging the button's
  * edge and fading outward — a crisp circle, no polygonal Android shadow.
  */
-export function TapButton({ isRunning, onPress }: TapButtonProps) {
+export function TapButton({ isRunning, amount, unit, onPress }: TapButtonProps) {
   const breath = useRef(new Animated.Value(0)).current;
   const press = useRef(new Animated.Value(0)).current;
 
@@ -69,8 +71,8 @@ export function TapButton({ isRunning, onPress }: TapButtonProps) {
 
       <Pressable onPress={onPress} onPressIn={() => animatePress(1)} onPressOut={() => animatePress(0)}>
         <Animated.View style={[styles.button, isRunning && styles.buttonActive, { transform: [{ scale }] }]}>
-          <Text style={styles.plus}>+5</Text>
-          <Text style={styles.unit}>min</Text>
+          <Text style={styles.plus}>+{amount}</Text>
+          <Text style={styles.unit}>{unit}</Text>
         </Animated.View>
       </Pressable>
     </View>

@@ -5,12 +5,12 @@ Relire en début de session. Retirer un item dès qu'il est livré (le résumer 
 
 ## En cours
 
-- [ ] Ressenti sur téléphone : valider sonnerie + réglages + keep-awake.
+- [ ] Ressenti sur téléphone : valider double-tap stop, carillon, durée réglable.
 
 ## À faire (prochain — MVP)
 
 - [ ] Icône & splash aux couleurs de Compotium.
-- [ ] Affiner la sonnerie si besoin (volume, timbre).
+- [ ] Persistance des réglages (durée, unité, keep-awake) — AsyncStorage.
 
 ## Plus tard / idées
 
@@ -24,6 +24,10 @@ Relire en début de session. Retirer un item dès qu'il est livré (le résumer 
 
 ## Livré récemment
 
+- 2026-08-08 : **Réglages durée par tap** (stepper + choix min/sec, défaut 5 min),
+  **STOP en double-tap** (arme puis confirme + désintégration), carillon adouci &
+  allégé, retrait des vibrations de fin/stop, fix barre d'état (safe-area-context),
+  fond mémoïsé (fluidité).
 - 2026-08-08 : **Sonnerie de fin** (carillon synthétisé, expo-audio, seulement sur fin
   naturelle) + **réglages** (bouton engrenage + panneau) + **keep-awake** activable.
 - 2026-08-08 : **Bouton STOP hold-to-confirm** (anneau horaire + désintégration), halo
