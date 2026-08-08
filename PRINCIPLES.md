@@ -19,5 +19,8 @@ Les règles du produit qui **priment sur les préférences techniques**. Stable 
 - Un **tap ajoute 5 minutes** (incréments de 5). Deux taps = 10 min, trois = 15 min.
 - Le **compte à rebours démarre dès le premier tap** ; taper à nouveau pendant qu'il
   tourne **ajoute** 5 min au temps restant.
+- Une session est **plafonnée à 60 minutes** (au-delà, le tap ne rallonge plus ; retour
+  tactile plus léger pour le signaler). Garde le compteur à 2 chiffres de minutes et une
+  session « raisonnable ».
 - À **0**, l'app signale la fin en douceur (retour tactile/visuel apaisant) et revient à
   l'état de repos, prête pour un nouveau geste.

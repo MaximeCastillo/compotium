@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, Text } from 'react-native';
+import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
+import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { colors, durations } from '../theme/colors';
 
 type TapButtonProps = {
@@ -8,9 +9,13 @@ type TapButtonProps = {
   onLongPress: () => void;
 };
 
+const SIZE = 224; // the button circle
+const GLOW = 320; // the soft aura behind it
+
 /**
- * The single gesture of the app. It breathes gently on its own (a slow
- * heartbeat) and sinks a little when pressed. One tap = +5 min.
+ * The single gesture of the app. It breathes gently on its own and sinks a
+ * little when pressed. A soft radial glow (SVG) sits behind it — a crisp
+ * circle with a diffuse halo, no polygonal Android elevation shadow.
  */
 export function TapButton({ isRunning, onPress, onLongPress }: TapButtonProps) {
   const breath = useRef(new Animated.Value(0)).current;
@@ -19,18 +24,8 @@ export function TapButton({ isRunning, onPress, onLongPress }: TapButtonProps) {
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(breath, {
-          toValue: 1,
-          duration: durations.buttonBreath,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(breath, {
-          toValue: 0,
-          duration: durations.buttonBreath,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
+        Animated.timing(breath, { toValue: 1, duration: durations.buttonBreath, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(breath, { toValue: 0, duration: durations.buttonBreath, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
       ]),
     );
     loop.start();
@@ -38,43 +33,61 @@ export function TapButton({ isRunning, onPress, onLongPress }: TapButtonProps) {
   }, [breath]);
 
   const animatePress = (toValue: number) => {
-    Animated.timing(press, {
-      toValue,
-      duration: 140,
-      easing: Easing.out(Easing.quad),
-      useNativeDriver: true,
-    }).start();
+    Animated.timing(press, { toValue, duration: 140, easing: Easing.out(Easing.quad), useNativeDriver: true }).start();
   };
 
-  // Combine the autonomous breath with the press-in shrink.
   const scale = Animated.multiply(
     breath.interpolate({ inputRange: [0, 1], outputRange: [1, 1.045] }),
     press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.94] }),
   );
+  const glowOpacity = breath.interpolate({ inputRange: [0, 1], outputRange: [0.55, 1] });
+  const glowScale = breath.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1.1] });
 
   return (
-    <Pressable
-      onPress={onPress}
-      onLongPress={onLongPress}
-      onPressIn={() => animatePress(1)}
-      onPressOut={() => animatePress(0)}
-    >
+    <View style={styles.wrapper}>
       <Animated.View
-        style={[
-          styles.button,
-          isRunning && styles.buttonActive,
-          { transform: [{ scale }] },
-        ]}
+        pointerEvents="none"
+        style={[styles.glow, { opacity: glowOpacity, transform: [{ scale: glowScale }] }]}
       >
-        <Text style={styles.plus}>+5</Text>
-        <Text style={styles.unit}>min</Text>
+        <Svg width={GLOW} height={GLOW}>
+          <Defs>
+            <RadialGradient id="buttonGlow" cx="50%" cy="50%" r="50%">
+              <Stop offset="0%" stopColor={colors.auraTeal} stopOpacity={isRunning ? 0.5 : 0.32} />
+              <Stop offset="55%" stopColor={colors.auraTeal} stopOpacity={0.12} />
+              <Stop offset="100%" stopColor={colors.auraTeal} stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          <Rect x="0" y="0" width={GLOW} height={GLOW} fill="url(#buttonGlow)" />
+        </Svg>
       </Animated.View>
-    </Pressable>
+
+      <Pressable
+        onPress={onPress}
+        onLongPress={onLongPress}
+        onPressIn={() => animatePress(1)}
+        onPressOut={() => animatePress(0)}
+      >
+        <Animated.View style={[styles.button, isRunning && styles.buttonActive, { transform: [{ scale }] }]}>
+          <Text style={styles.plus}>+5</Text>
+          <Text style={styles.unit}>min</Text>
+        </Animated.View>
+      </Pressable>
+    </View>
   );
 }
 
-const SIZE = 224;
 const styles = StyleSheet.create({
+  wrapper: {
+    width: GLOW,
+    height: GLOW,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  glow: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   button: {
     width: SIZE,
     height: SIZE,
@@ -84,12 +97,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.buttonBg,
     borderWidth: 1,
     borderColor: colors.buttonBorderIdle,
-    // Soft teal glow (iOS shadow* / Android elevation).
-    shadowColor: colors.auraTeal,
-    shadowOpacity: 0.4,
-    shadowRadius: 34,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 10,
   },
   buttonActive: {
     borderColor: colors.buttonBorderActive,

@@ -3,8 +3,8 @@ import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { colors, durations } from '../theme/colors';
 
 type CountdownDisplayProps = {
-  minutes: string; // "05"
-  seconds: string; // "00"
+  minutes: string; // always two chars, e.g. "05" (capped at "60")
+  seconds: string; // always two chars, e.g. "00"
   isRunning: boolean;
 };
 
@@ -21,40 +21,46 @@ export function CountdownDisplay({ minutes, seconds, isRunning }: CountdownDispl
 }
 
 /**
- * A single digit that dissolves on change: the old glyph falls and fades
- * while the new one descends from above and settles in. Two overlaid layers
- * driven by one 0->1 animation give us full control over both directions.
+ * A single digit that dissolves on change: the old glyph fades and drifts
+ * down, then the new one descends from above and settles. The two layers
+ * never overlap (staggered opacity), so there is no bright flash.
+ *
+ * `settledRef` always holds the last target value, so even rapid changes
+ * pick the correct "previous" glyph — no stray digit.
  */
 function Digit({ value, active }: { value: string; active: boolean }) {
-  const [chars, setChars] = useState({ current: value, previous: value });
+  const [pair, setPair] = useState({ previous: value, current: value });
   const anim = useRef(new Animated.Value(1)).current; // 1 = settled
+  const settledRef = useRef(value);
 
   useEffect(() => {
-    if (value === chars.current) return;
-    setChars({ current: value, previous: chars.current });
-    anim.setValue(0);
-    Animated.timing(anim, {
-      toValue: 1,
-      duration: durations.digitDissolve * 2,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-    // We intentionally react only to `value` changes.
+    if (value === settledRef.current) return;
+    setPair({ previous: settledRef.current, current: value });
+    settledRef.current = value;
+    anim.stopAnimation(() => {
+      anim.setValue(0);
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: durations.digitDissolve * 2,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    });
+    // React only to value changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
   const color = active ? colors.digitBright : colors.digitDim;
 
-  // Outgoing glyph: fades out in the FIRST half while drifting down.
+  // Outgoing glyph: visible then fades out in the first half, drifting down.
   const outOpacity = anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 0, 0] });
-  const outTranslate = anim.interpolate({ inputRange: [0, 1], outputRange: [0, 16] });
-  const outScale = anim.interpolate({ inputRange: [0, 1], outputRange: [1, 0.82] });
+  const outTranslate = anim.interpolate({ inputRange: [0, 1], outputRange: [0, 18] });
+  const outScale = anim.interpolate({ inputRange: [0, 1], outputRange: [1, 0.8] });
 
-  // Incoming glyph: fades in only in the SECOND half — so the two glyphs
-  // never overlap, which is what caused the bright "flash".
+  // Incoming glyph: appears only in the second half, descending into place.
   const inOpacity = anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 0, 1] });
-  const inTranslate = anim.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] });
-  const inScale = anim.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] });
+  const inTranslate = anim.interpolate({ inputRange: [0, 1], outputRange: [-18, 0] });
+  const inScale = anim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] });
 
   return (
     <View style={styles.digitBox}>
@@ -65,7 +71,7 @@ function Digit({ value, active }: { value: string; active: boolean }) {
           { color, opacity: outOpacity, transform: [{ translateY: outTranslate }, { scale: outScale }] },
         ]}
       >
-        {chars.previous}
+        {pair.previous}
       </Animated.Text>
       <Animated.Text
         style={[
@@ -74,7 +80,7 @@ function Digit({ value, active }: { value: string; active: boolean }) {
           { color, opacity: inOpacity, transform: [{ translateY: inTranslate }, { scale: inScale }] },
         ]}
       >
-        {chars.current}
+        {pair.current}
       </Animated.Text>
     </View>
   );
@@ -107,7 +113,11 @@ function Colon({ active }: { active: boolean }) {
 
   return (
     <Animated.Text
-      style={[styles.digit, styles.colon, { color: active ? colors.digitBright : colors.digitDim, opacity: pulse }]}
+      style={[
+        styles.digit,
+        styles.colon,
+        { color: active ? colors.digitBright : colors.digitDim, opacity: pulse },
+      ]}
     >
       :
     </Animated.Text>
