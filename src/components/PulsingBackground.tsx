@@ -5,14 +5,19 @@ import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { useTheme } from '../theme/ThemeContext';
 
 const { width, height } = Dimensions.get('window');
-const BLOB = Math.max(width, height) * 1.45; // each aura is bigger than the screen
+// Draw each aura in a SMALL svg, then let the GPU scale it up. A radial
+// gradient is smooth, so upscaling is invisible — but rasterizing 260px
+// instead of ~3500px is ~200x cheaper (fast theme switches, lighter idle).
+const SVG_RES = 260;
+const REACH = Math.max(width, height) * 1.4; // visual diameter of an aura
+const BASE_SCALE = REACH / SVG_RES;
 
 type BlobConfig = {
   id: string;
   color: string;
   core: number;
-  left: number;
-  top: number;
+  cx: number; // center on screen
+  cy: number;
   driftX: number;
   driftY: number;
   breathMs: number;
@@ -20,17 +25,16 @@ type BlobConfig = {
 };
 
 /**
- * The deep backdrop: a static gradient plus a few soft radial auras that
- * breathe and drift. It depends only on the theme (not on the timer state),
- * so starting/stopping a timer never re-renders these heavy SVGs.
+ * The deep backdrop: a static gradient plus soft radial auras that breathe and
+ * drift. Depends only on the theme (memoized), so timer state never re-renders it.
  */
 function PulsingBackgroundBase() {
   const colors = useTheme();
 
   const blobs: BlobConfig[] = [
-    { id: 'a1', color: colors.auraTeal, core: 0.5, left: -BLOB * 0.24, top: -BLOB * 0.18, driftX: 40, driftY: 30, breathMs: 4200, driftMs: 9000 },
-    { id: 'a2', color: colors.auraSky, core: 0.42, left: width - BLOB * 0.74, top: height - BLOB * 0.66, driftX: -46, driftY: -34, breathMs: 5200, driftMs: 11000 },
-    { id: 'a3', color: colors.auraGreen, core: 0.44, left: width * 0.5 - BLOB * 0.5, top: height * 0.24, driftX: 26, driftY: -28, breathMs: 6000, driftMs: 13000 },
+    { id: 'a1', color: colors.auraTeal, core: 0.5, cx: width * 0.2, cy: height * 0.15, driftX: 40, driftY: 30, breathMs: 4200, driftMs: 9000 },
+    { id: 'a2', color: colors.auraSky, core: 0.42, cx: width * 0.85, cy: height * 0.85, driftX: -46, driftY: -34, breathMs: 5200, driftMs: 11000 },
+    { id: 'a3', color: colors.auraGreen, core: 0.44, cx: width * 0.5, cy: height * 0.5, driftX: 26, driftY: -28, breathMs: 6000, driftMs: 13000 },
   ];
 
   return (
@@ -72,7 +76,8 @@ function Blob({ config }: { config: BlobConfig }) {
   }, [breath, drift, config.breathMs, config.driftMs]);
 
   const opacity = breath.interpolate({ inputRange: [0, 1], outputRange: [0.45, 1] });
-  const breathScale = breath.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1.16] });
+  // Breathing scale is folded into the GPU upscale factor.
+  const scale = breath.interpolate({ inputRange: [0, 1], outputRange: [BASE_SCALE * 0.92, BASE_SCALE * 1.16] });
   const translateX = drift.interpolate({ inputRange: [0, 1], outputRange: [-config.driftX, config.driftX] });
   const translateY = drift.interpolate({ inputRange: [0, 1], outputRange: [-config.driftY, config.driftY] });
 
@@ -81,10 +86,15 @@ function Blob({ config }: { config: BlobConfig }) {
       pointerEvents="none"
       style={[
         styles.blob,
-        { left: config.left, top: config.top, opacity, transform: [{ translateX }, { translateY }, { scale: breathScale }] },
+        {
+          left: config.cx - SVG_RES / 2,
+          top: config.cy - SVG_RES / 2,
+          opacity,
+          transform: [{ translateX }, { translateY }, { scale }],
+        },
       ]}
     >
-      <Svg width={BLOB} height={BLOB}>
+      <Svg width={SVG_RES} height={SVG_RES}>
         <Defs>
           <RadialGradient id={config.id} cx="50%" cy="50%" r="50%">
             <Stop offset="0%" stopColor={config.color} stopOpacity={config.core} />
@@ -92,7 +102,7 @@ function Blob({ config }: { config: BlobConfig }) {
             <Stop offset="100%" stopColor={config.color} stopOpacity={0} />
           </RadialGradient>
         </Defs>
-        <Rect x="0" y="0" width={BLOB} height={BLOB} fill={`url(#${config.id})`} />
+        <Rect x="0" y="0" width={SVG_RES} height={SVG_RES} fill={`url(#${config.id})`} />
       </Svg>
     </Animated.View>
   );
@@ -101,7 +111,7 @@ function Blob({ config }: { config: BlobConfig }) {
 const styles = StyleSheet.create({
   blob: {
     position: 'absolute',
-    width: BLOB,
-    height: BLOB,
+    width: SVG_RES,
+    height: SVG_RES,
   },
 });

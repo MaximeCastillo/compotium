@@ -9,8 +9,10 @@ Relire en début de session. Retirer un item dès qu'il est livré (le résumer 
 
 ## À faire (prochain — MVP)
 
+- [ ] **Timer robuste en arrière-plan** : compte à rebours basé sur un timestamp de fin
+  (recalcul au retour via AppState) + **notification locale** planifiée à la fin
+  (expo-notifications) pour sonner même app fermée. → gros morceau, session dédiée.
 - [ ] Icône & splash aux couleurs de Compotium.
-- [ ] Persistance des réglages (durée, unité, keep-awake) — AsyncStorage.
 
 ## Plus tard / idées
 
@@ -18,12 +20,12 @@ Relire en début de session. Retirer un item dès qu'il est livré (le résumer 
   halo « Gargantua » (style Interstellar : trou sombre, disque lumineux asymétrique).
 - V2 : **« Ne pas déranger »** pendant le timer (permission Android ; iOS via Focus/
   Screen Time).
-- Persistance des réglages (keep-awake) via AsyncStorage.
-- Persistance du timer si l'app passe en arrière-plan / se ferme.
 - Build Android installable hors Expo Go (APK via EAS) ; portage iOS.
 
 ## Livré récemment
 
+- 2026-08-08 : **Persistance des réglages** (AsyncStorage) + **switch de thème quasi
+  instantané** (auras rendues en petit SVG puis agrandies par le GPU).
 - 2026-08-08 : **Réglage son Court / Long** (version longue ~6,8 s du son cinématique) ;
   palettes validées & verrouillées.
 - 2026-08-08 : **2 thèmes** (Calme spatial / Énergie solaire) via ThemeContext, **saisie
