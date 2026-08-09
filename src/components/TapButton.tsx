@@ -90,7 +90,13 @@ const makeStyles = (colors: Palette) =>
       justifyContent: 'center',
     },
     glow: {
-      ...StyleSheet.absoluteFillObject,
+      // Spelled out rather than spreading a StyleSheet helper: `absoluteFillObject`
+      // was removed in React Native 0.85, and these four lines cannot rot.
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
       alignItems: 'center',
       justifyContent: 'center',
     },

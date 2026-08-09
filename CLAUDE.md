@@ -14,7 +14,7 @@ pourquoi : **`DECISIONS.md`**. Plan vivant : **`ROADMAP.md`**.
 
 ## Stack (décidée — ne pas re-challenger)
 
-**Expo SDK 54** (managed workflow) · **React Native** · **TypeScript** (strict). Base
+**Expo SDK 57** (managed workflow, RN 0.86) · **React Native** · **TypeScript** (strict). Base
 `blank-typescript`, un seul écran au MVP. Animations via **React Native Reanimated** et
 retour tactile via **expo-haptics** (ajoutés au moment de construire l'écran).
 **Expo Router** repoussé au 1ᵉʳ 2ᵉ écran (YAGNI — voir `DECISIONS.md`).
@@ -32,6 +32,13 @@ qui plafonnait sur trois besoins natifs. Conséquences au quotidien :
   15 builds/mois). Grouper les changements natifs pour ne pas payer la file plusieurs fois.
 - Les ressources natives Android (sons…) doivent porter un **nom valide** : minuscules,
   chiffres, underscores. Pas de tiret — le nom devient un identifiant Java.
+- **Rester à jour sur le SDK.** Les paquets `expo-*` portent le numéro du SDK
+  (`expo-audio@57.x`) ; être en retard fait résoudre npm vers une autre génération et
+  crashe l'app au démarrage. `npx expo-doctor` détecte ces doublons natifs —
+  `expo install --check` **non** (il ignore les dépendances transitives).
+- **Ne jamais laisser une permission qu'on n'utilise pas.** Les config plugins en ajoutent
+  par défaut (micro, service en avant-plan…). Relire le manifeste introspecté après tout
+  changement de plugin.
 
 ## Langue
 
@@ -84,7 +91,9 @@ capacités du téléphone.
    — compile tout le graphe de modules ; attrape imports/exports cassés et deps
    circulaires que `tsc` ne voit pas. À lancer **au moins avant un commit notable et
    après un gros refactor**.
-3. **Lint** : `npx expo lint` (⚠️ ESLint pas encore installé — voir `ROADMAP.md`).
+3. **Lint** : `npx expo lint`.
+3bis. **Santé du projet** : `npx expo-doctor` — versions natives, doublons, schéma de
+   config. Indispensable après toute manip de dépendances.
 4. **Config native**, avant tout rebuild : `npx expo config --type introspect` — exécute
    réellement les config plugins et montre le `AndroidManifest.xml` résultant. Un build
    cloud raté coûte 10-90 min de file.

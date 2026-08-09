@@ -43,7 +43,10 @@ async function ensureAndroidChannel(): Promise<void> {
   await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
     name: CHANNEL_NAME,
     importance: Notifications.AndroidImportance.HIGH,
-    sound: 'default', // the custom chime would need a development build
+    // `sound` is deliberately absent: omitting it selects the system default.
+    // Any string here is looked up as an embedded resource filename — 'default'
+    // is not one, which is what the runtime warning was about — and an explicit
+    // `null` would make the channel silent.
     vibrationPattern: [0, 400],
   });
 }
@@ -61,6 +64,8 @@ export async function scheduleSessionEnd(endsAt: number): Promise<void> {
   if (!(await ensureNotificationPermission())) return;
   await ensureAndroidChannel();
   await Notifications.scheduleNotificationAsync({
+    // 'default' is the API's own literal for the system sound, and it is what
+    // iOS reads. On Android 8+ the channel decides instead, so this is inert there.
     content: { title: TITLE, body: BODY, sound: 'default' },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DATE,
