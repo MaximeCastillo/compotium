@@ -10,6 +10,7 @@ import { SettingsSheet } from './src/components/SettingsSheet';
 import { StopButton } from './src/components/StopButton';
 import { TapButton } from './src/components/TapButton';
 import { useCountdown } from './src/hooks/useCountdown';
+import { useEndNotification } from './src/hooks/useEndNotification';
 import { useSettings } from './src/hooks/useSettings';
 import { themes } from './src/theme/colors';
 import { ThemeProvider } from './src/theme/ThemeContext';
@@ -17,8 +18,11 @@ import { ThemeProvider } from './src/theme/ThemeContext';
 export default function App() {
   const { keepAwake, setKeepAwake, tapAmount, setTapAmount, tapUnit, setTapUnit, themeName, setThemeName, soundLength, setSoundLength } = useSettings();
   const incrementSeconds = tapUnit === 'min' ? tapAmount * 60 : tapAmount;
-  const { isRunning, minutes, seconds, addTime, reset } = useCountdown(incrementSeconds, soundLength);
+  const { endsAt, isRunning, minutes, seconds, addTime, reset } = useCountdown(incrementSeconds, soundLength);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // The OS rings when the app can't: it holds the deadline too.
+  useEndNotification(endsAt);
 
   return (
     <SafeAreaProvider>
