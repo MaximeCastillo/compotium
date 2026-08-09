@@ -15,6 +15,39 @@ Format :
 
 ---
 
+## 2026-08-09 — Sortir d'Expo Go : le premier build natif
+
+**Construit.** Un **development build Android** via EAS Build (cloud), en 8 min. Il déclare
+`USE_EXACT_ALARM` — ce qui rend le minuteur ponctuel **pour un vrai utilisateur**, sans le
+réglage manuel qu'il fallait bricoler dans Expo Go — et embarque les deux carillons pour
+plus tard. `RECORD_AUDIO` retiré au passage.
+
+**Appris.**
+- 🆕 **Expo Go est un binaire figé.** Il a *son* manifeste ; une app qui tourne dedans ne
+  peut donc jamais déclarer ses propres permissions ni embarquer ses propres ressources
+  natives. C'est un plafond structurel, pas une suite de petits manques — d'où la sortie.
+- 🆕 **Le cycle de dev ne change pas.** Metro et Fast Refresh continuent. **Seul le natif**
+  (permissions, config plugins, ressources, modules) coûte un rebuild. La bonne habitude :
+  **grouper** les changements natifs pour ne pas repayer la file d'attente.
+- 🆕 **L'identifiant de package** : la clé primaire de l'app dans tout l'écosystème, en
+  DNS inversé, **définitive**. Et le **keystore** : la clé de signature ; la perdre, c'est
+  ne plus jamais pouvoir mettre à jour son app.
+- 🆕 **Les noms de ressources Android deviennent du code** (`R.raw.chime_long`), donc pas
+  de tiret. C'est ce qui a fait tomber le premier build en 26 s.
+- 🆕 **Le natif rend visible ce qu'on ne voyait pas.** Le plugin `expo-audio` ajoutait
+  `RECORD_AUDIO` : invisible dans Expo Go, bien réel dans un build. Une minuterie n'a
+  aucune raison de demander le micro → `recordAudioAndroid: false`.
+
+**Victoires / galères.** Bonne méthode sur l'échec de build : au lieu de deviner, lire la
+source du plugin, trouver l'assertion exacte (`assertValidAndroidAssetName`), **l'exécuter
+sur nos fichiers** pour voir lequel cassait, puis la rejouer après correction pour prouver
+que ça passerait. Diagnostic en quelques minutes, sans brûler de build. Le log EAS, lui,
+a résisté à toutes mes tentatives de décompression — l'indice « phase Prebuild, 26 s »
+valait mieux que le log.
+
+**Prochaine fois.** Valider sur le téléphone (surtout : « Alarmes et rappels » accordée
+d'office). Puis le carillon en son de notification — **du JS pur, sans rebuild**.
+
 ## 2026-08-09 — Le timer qui survit à l'arrière-plan
 
 **Construit.** Le compte à rebours ne compte plus les secondes, il vise une **date de

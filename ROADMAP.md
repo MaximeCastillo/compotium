@@ -5,32 +5,39 @@ Relire en début de session. Retirer un item dès qu'il est livré (le résumer 
 
 ## En cours
 
+- [ ] **Valider le development build sur le téléphone** :
+  - « Alarmes et rappels » doit être **déjà accordée** sans intervention (c'est la preuve
+    que `USE_EXACT_ALARM` fait son travail pour un vrai utilisateur) ;
+  - rejouer le test « app tuée » → notif à la seconde ;
+  - test reporté « taps en rafale = une seule notif à l'heure » ;
+  - test reporté « permission notif refusée = l'app marche quand même ».
 - [ ] Ressenti sur téléphone : valider double-tap stop, carillon, durée réglable.
-- [ ] **Valider le timer en arrière-plan** : restent le test « taps en rafale = une seule
-  notif à l'heure » et le test « permission refusée = l'app marche quand même ».
-  ⚠️ Prérequis dev : accorder « Alarmes et rappels » à Expo Go (voir `DECISIONS.md`).
 
 ## À faire (prochain — MVP)
 
+- [ ] **Carillon en son de notification** — les deux `.wav` sont déjà embarqués dans le
+  binaire, donc c'est **du JS pur, sans rebuild**. Piège : un canal Android est
+  **immuable une fois créé** ; changer son son impose un **nouvel identifiant** de canal.
 - [ ] Icône & splash aux couleurs de Compotium.
 - [ ] Installer ESLint (`npx expo lint` échoue : le paquet n'a jamais été installé, alors
   que la boucle de vérif du `CLAUDE.md` le mentionne).
 
 ## Plus tard / idées
 
-- **Dev build (Skia)** : vraie désintégration en particules + fond liquide/nébuleuse +
-  halo « Gargantua » (style Interstellar : trou sombre, disque lumineux asymétrique).
-- **Son de notification personnalisé** (le carillon au lieu du son système) — exige le
-  config plugin `expo-notifications` + un dev build. À grouper avec l'item Skia.
-- ⚠️ **Bloquant avant toute distribution** : déclarer `USE_EXACT_ALARM` dans le manifeste
-  du build natif, sinon les notifications repartent en retard de ~40 s chez tout le monde
-  (voir `DECISIONS.md` du 2026-08-09).
+- **Skia** (débloqué par le dev build) : vraie désintégration en particules + fond
+  liquide/nébuleuse + halo « Gargantua » (style Interstellar : trou sombre, disque
+  lumineux asymétrique). Module natif → prévoir un rebuild.
 - V2 : **« Ne pas déranger »** pendant le timer (permission Android ; iOS via Focus/
   Screen Time).
-- Build Android installable hors Expo Go (APK via EAS) ; portage iOS.
+- Avant toute distribution : relire les permissions du manifeste et affiner
+  `SCHEDULE_EXACT_ALARM` avec un `maxSdkVersion="32"` (Google Play regarde ça de près).
+- Portage iOS.
 
 ## Livré récemment
 
+- 2026-08-09 : **Development build Android (EAS)** — sortie d'Expo Go. Permissions
+  d'alarme exacte déclarées, les deux carillons embarqués, `RECORD_AUDIO` retiré.
+  APK produit en 8 min ; validation téléphone en cours.
 - 2026-08-09 : **Timer robuste en arrière-plan** — compte à rebours basé sur une date de
   fin (resynchro via `AppState`), session persistée (survit à la fermeture de l'app), et
   **notification locale** planifiée pour sonner écran verrouillé ou app tuée.
