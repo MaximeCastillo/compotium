@@ -1,6 +1,23 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
+import {
+  BlurMask,
+  Canvas,
+  Circle,
+  Group,
+  RadialGradient,
+  SweepGradient,
+  vec,
+} from '@shopify/react-native-skia';
+import { useEffect, useMemo } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Easing,
+  useDerivedValue,
+  useSharedValue,
+  withRepeat,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+import { withAlpha } from '../theme/alpha';
 import { durations, type Palette } from '../theme/colors';
 import { useTheme } from '../theme/ThemeContext';
 
@@ -11,71 +28,124 @@ type TapButtonProps = {
   onPress: () => void;
 };
 
-const SIZE = 200;
-const GLOW = 360;
+const CORE = 100; // radius of the dark centre — the "shadow" of the hole
+const CANVAS = 420; // wide enough for the disc and its glow to fade out inside
+const CENTRE = CANVAS / 2;
+// The canvas is far larger than the space the button should claim in the column,
+// so it overflows symmetrically instead of pushing the countdown around.
+const FOOTPRINT = CORE * 2 + 56;
+const CANVAS_OFFSET = (FOOTPRINT - CANVAS) / 2;
+const DISC = 158; // radius of the accretion disc
+const DISC_FLATTEN = 0.2; // seen nearly edge-on, as in the film
+const ROTATION_MS = 72000; // one revolution — slow enough to feel like drift
 
 /**
- * The single gesture of the app. It breathes gently and sinks when pressed.
- * Behind it, an SVG "eclipse" corona hugging the button's edge.
+ * The single gesture of the app, drawn as a black hole.
+ *
+ * Layered back to front: an outer glow, the far side of the accretion disc, the
+ * dark core that hides its middle, the photon ring hugging that core, then the
+ * near side of the disc and the vertical bow of light arcing over the top —
+ * which is what makes the shape read as Gargantua rather than as a ring.
+ *
+ * Skia draws all of it, including the core, so that the parts meant to pass in
+ * front of the hole actually do. The Pressable is a transparent overlay.
  */
 export function TapButton({ isRunning, amount, unit, onPress }: TapButtonProps) {
   const colors = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const breath = useRef(new Animated.Value(0)).current;
-  const press = useRef(new Animated.Value(0)).current;
+  const spin = useSharedValue(0);
+  const breath = useSharedValue(0);
+  const press = useSharedValue(0);
 
   useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(breath, { toValue: 1, duration: durations.buttonBreath, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(breath, { toValue: 0, duration: durations.buttonBreath, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      ]),
+    spin.value = withRepeat(withTiming(1, { duration: ROTATION_MS, easing: Easing.linear }), -1, false);
+    breath.value = withRepeat(
+      withTiming(1, { duration: durations.buttonBreath, easing: Easing.inOut(Easing.sin) }),
+      -1,
+      true,
     );
-    loop.start();
-    return () => loop.stop();
-  }, [breath]);
+  }, [spin, breath]);
 
-  const animatePress = (toValue: number) => {
-    Animated.timing(press, { toValue, duration: 140, easing: Easing.out(Easing.quad), useNativeDriver: true }).start();
-  };
+  // A running timer burns brighter; at rest the hole is banked down.
+  const intensity = isRunning ? 1 : 0.62;
 
-  const scale = Animated.multiply(
-    breath.interpolate({ inputRange: [0, 1], outputRange: [1, 1.04] }),
-    press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.94] }),
+  const discTransform = useDerivedValue(
+    () => [{ rotate: spin.value * 2 * Math.PI }, { scaleY: DISC_FLATTEN }],
+    [spin],
   );
-  const coronaOpacity = breath.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] });
-  const coronaScale = breath.interpolate({ inputRange: [0, 1], outputRange: [0.99, 1.05] });
+  const bowTransform = useDerivedValue(
+    () => [{ rotate: -spin.value * 2 * Math.PI }, { scaleX: DISC_FLATTEN }],
+    [spin],
+  );
+  const glowScale = useDerivedValue(
+    () => [{ scale: 1 + breath.value * 0.06 - press.value * 0.05 }],
+    [breath, press],
+  );
+  const coreScale = useDerivedValue(() => [{ scale: 1 - press.value * 0.06 }], [press]);
 
-  const peak = isRunning ? 1 : 0.8;
+  const origin = vec(CENTRE, CENTRE);
+  const hot = withAlpha(colors.buttonPlus, 0.95 * intensity); // the bright limb
+  const cool = withAlpha(colors.auraTeal, 0.18 * intensity); // the receding one
 
   return (
     <View style={styles.wrapper}>
-      <Animated.View
-        pointerEvents="none"
-        style={[styles.glow, { opacity: coronaOpacity, transform: [{ scale: coronaScale }] }]}
-      >
-        <Svg width={GLOW} height={GLOW}>
-          <Defs>
-            <RadialGradient id="eclipse" cx="50%" cy="50%" r="50%">
-              <Stop offset="0%" stopColor={colors.auraTeal} stopOpacity={0.06} />
-              <Stop offset="50%" stopColor={colors.auraTeal} stopOpacity={0.06} />
-              <Stop offset="55%" stopColor={colors.auraTeal} stopOpacity={0.5 * peak} />
-              <Stop offset="59%" stopColor={colors.auraTeal} stopOpacity={0.95 * peak} />
-              <Stop offset="64%" stopColor={colors.auraTeal} stopOpacity={0.35 * peak} />
-              <Stop offset="80%" stopColor={colors.auraTeal} stopOpacity={0.1 * peak} />
-              <Stop offset="100%" stopColor={colors.auraTeal} stopOpacity={0} />
-            </RadialGradient>
-          </Defs>
-          <Rect x="0" y="0" width={GLOW} height={GLOW} fill="url(#eclipse)" />
-        </Svg>
-      </Animated.View>
+      <Canvas style={styles.canvas} pointerEvents="none">
+        {/* Diffuse light spilling into the surrounding space. */}
+        <Group transform={glowScale} origin={origin}>
+          <Circle c={origin} r={DISC * 1.25}>
+            <RadialGradient
+              c={origin}
+              r={DISC * 1.25}
+              colors={[withAlpha(colors.auraTeal, 0.16 * intensity), withAlpha(colors.auraTeal, 0)]}
+            />
+          </Circle>
+        </Group>
 
-      <Pressable onPress={onPress} onPressIn={() => animatePress(1)} onPressOut={() => animatePress(0)}>
-        <Animated.View style={[styles.button, isRunning && styles.buttonActive, { transform: [{ scale }] }]}>
-          <Text style={styles.plus}>+{amount}</Text>
-          <Text style={styles.unit}>{unit}</Text>
-        </Animated.View>
+        {/* Far side of the disc — drawn first, so the core will cover its middle. */}
+        <Group transform={discTransform} origin={origin}>
+          <Circle c={origin} r={DISC} style="stroke" strokeWidth={54}>
+            <SweepGradient c={origin} colors={[hot, cool, cool, hot]} positions={[0, 0.3, 0.7, 1]} />
+            <BlurMask blur={22} style="normal" />
+          </Circle>
+        </Group>
+
+        {/* The shadow itself. */}
+        <Group transform={coreScale} origin={origin}>
+          <Circle c={origin} r={CORE} color={colors.bgTop} />
+          {/* Photon ring: a thin, very bright edge is what sells the scale. */}
+          <Circle
+            c={origin}
+            r={CORE + 1}
+            style="stroke"
+            strokeWidth={2.5}
+            color={withAlpha(colors.buttonPlus, 0.9 * intensity)}
+          >
+            <BlurMask blur={4} style="normal" />
+          </Circle>
+        </Group>
+
+        {/* Light bent over the top and under the bottom — Gargantua's signature. */}
+        <Group transform={bowTransform} origin={origin} opacity={0.55}>
+          <Circle c={origin} r={DISC * 0.92} style="stroke" strokeWidth={34}>
+            <SweepGradient c={origin} colors={[cool, hot, hot, cool]} positions={[0, 0.28, 0.72, 1]} />
+            <BlurMask blur={26} style="normal" />
+          </Circle>
+        </Group>
+      </Canvas>
+
+      <Pressable
+        onPress={onPress}
+        onPressIn={() => {
+          press.value = withTiming(1, { duration: 120 });
+        }}
+        onPressOut={() => {
+          press.value = withSpring(0, { damping: 18, stiffness: 260 });
+        }}
+        style={styles.hitArea}
+      >
+        <Text style={styles.plus}>+{amount}</Text>
+        <Text style={styles.unit}>{unit}</Text>
       </Pressable>
     </View>
   );
@@ -84,45 +154,37 @@ export function TapButton({ isRunning, amount, unit, onPress }: TapButtonProps) 
 const makeStyles = (colors: Palette) =>
   StyleSheet.create({
     wrapper: {
-      width: GLOW,
-      height: GLOW,
+      width: FOOTPRINT,
+      height: FOOTPRINT,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    glow: {
-      // Spelled out rather than spreading a StyleSheet helper: `absoluteFillObject`
-      // was removed in React Native 0.85, and these four lines cannot rot.
+    canvas: {
       position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
+      top: CANVAS_OFFSET,
+      left: CANVAS_OFFSET,
+      width: CANVAS,
+      height: CANVAS,
+    },
+    // Transparent: the core it sits on is painted by Skia underneath.
+    hitArea: {
+      width: CORE * 2,
+      height: CORE * 2,
+      borderRadius: CORE,
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    button: {
-      width: SIZE,
-      height: SIZE,
-      borderRadius: SIZE / 2,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.buttonBg,
-      borderWidth: 1,
-      borderColor: colors.buttonBorderIdle,
-    },
-    buttonActive: {
-      borderColor: colors.buttonBorderActive,
     },
     plus: {
       color: colors.buttonPlus,
-      fontSize: 52,
+      fontSize: 40,
       fontWeight: '200',
+      letterSpacing: 1,
     },
     unit: {
       color: colors.buttonUnit,
-      fontSize: 15,
-      marginTop: 2,
-      letterSpacing: 4,
+      fontSize: 14,
+      letterSpacing: 3,
       textTransform: 'uppercase',
+      marginTop: 2,
     },
   });

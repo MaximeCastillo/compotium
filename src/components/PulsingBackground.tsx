@@ -1,117 +1,143 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { memo, useEffect, useRef } from 'react';
-import { Animated, Dimensions, Easing, StyleSheet, View } from 'react-native';
-import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
+import {
+  Blur,
+  Canvas,
+  Circle,
+  FractalNoise,
+  Group,
+  LinearGradient,
+  RadialGradient,
+  Rect,
+  vec,
+} from '@shopify/react-native-skia';
+import { memo, useEffect } from 'react';
+import { Dimensions, StyleSheet } from 'react-native';
+import {
+  Easing,
+  useDerivedValue,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
+import { withAlpha } from '../theme/alpha';
 import { useTheme } from '../theme/ThemeContext';
 
 const { width, height } = Dimensions.get('window');
-// Draw each aura in a SMALL svg, then let the GPU scale it up. A radial
-// gradient is smooth, so upscaling is invisible — but rasterizing 260px
-// instead of ~3500px is ~200x cheaper (fast theme switches, lighter idle).
-const SVG_RES = 260;
-const REACH = Math.max(width, height) * 1.4; // visual diameter of an aura
-const BASE_SCALE = REACH / SVG_RES;
 
-type BlobConfig = {
-  id: string;
+// One slow revolution drives every drift and breath below. Each aura reads it at
+// a different phase and rate, so they never fall into step and the whole field
+// keeps wandering instead of pulsing together.
+const CYCLE_MS = 24000;
+
+// The noise veil is what makes the background read as liquid rather than as
+// three coloured lamps. Kept faint on purpose: it is texture, not subject.
+const NOISE_OPACITY = 0.09;
+const NOISE_BLUR = 14;
+
+type Aura = {
   color: string;
-  core: number;
-  cx: number; // center on screen
-  cy: number;
-  driftX: number;
-  driftY: number;
-  breathMs: number;
-  driftMs: number;
+  x: number; // resting centre, in screen coordinates
+  y: number;
+  radius: number;
+  drift: number; // how far it wanders
+  rate: number; // cycles per revolution — irrational-ish ratios avoid lockstep
+  phase: number;
 };
 
 /**
- * The deep backdrop: a static gradient plus soft radial auras that breathe and
- * drift. Depends only on the theme (memoized), so timer state never re-renders it.
+ * The deep backdrop: a dark vertical gradient, a drifting veil of fractal noise,
+ * and three vast auras that breathe. All of it is one Skia canvas, so it costs a
+ * single draw pass, and every animation runs on the UI thread.
+ *
+ * Depends only on the theme (memoized) — timer state never re-renders it, which
+ * is the invariant that killed the start/stop stutter (see DECISIONS.md).
  */
 function PulsingBackgroundBase() {
   const colors = useTheme();
 
-  const blobs: BlobConfig[] = [
-    { id: 'a1', color: colors.auraTeal, core: 0.5, cx: width * 0.2, cy: height * 0.15, driftX: 40, driftY: 30, breathMs: 4200, driftMs: 9000 },
-    { id: 'a2', color: colors.auraSky, core: 0.42, cx: width * 0.85, cy: height * 0.85, driftX: -46, driftY: -34, breathMs: 5200, driftMs: 11000 },
-    { id: 'a3', color: colors.auraGreen, core: 0.44, cx: width * 0.5, cy: height * 0.5, driftX: 26, driftY: -28, breathMs: 6000, driftMs: 13000 },
+  const clock = useSharedValue(0);
+  useEffect(() => {
+    clock.value = withRepeat(
+      withTiming(1, { duration: CYCLE_MS, easing: Easing.linear }),
+      -1,
+      false,
+    );
+  }, [clock]);
+
+  const auras: Aura[] = [
+    { color: colors.auraTeal, x: width * 0.18, y: height * 0.16, radius: width * 0.85, drift: 46, rate: 1, phase: 0 },
+    { color: colors.auraSky, x: width * 0.86, y: height * 0.82, radius: width * 0.78, drift: 54, rate: 0.7, phase: 0.33 },
+    { color: colors.auraGreen, x: width * 0.5, y: height * 0.52, radius: width * 0.95, drift: 34, rate: 0.45, phase: 0.66 },
   ];
 
+  // The veil drifts diagonally and never repeats visibly, because it is far
+  // larger than the screen and only ever shows a moving window onto itself.
+  const noiseTransform = useDerivedValue(() => {
+    const angle = clock.value * 2 * Math.PI;
+    return [
+      { translateX: Math.cos(angle) * 60 },
+      { translateY: Math.sin(angle * 0.6) * 48 },
+    ];
+  }, [clock]);
+
   return (
-    <View style={StyleSheet.absoluteFill}>
-      <LinearGradient
-        colors={[colors.bgTop, colors.bgMid, colors.bgBottom]}
-        style={StyleSheet.absoluteFill}
-      />
-      {blobs.map((blob) => (
-        <Blob key={blob.id} config={blob} />
+    <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
+      <Rect x={0} y={0} width={width} height={height}>
+        <LinearGradient
+          start={vec(0, 0)}
+          end={vec(0, height)}
+          colors={[colors.bgTop, colors.bgMid, colors.bgBottom]}
+        />
+      </Rect>
+
+      {/* Screen blend lets the noise lift the darks without washing them out. */}
+      <Group opacity={NOISE_OPACITY} blendMode="screen" transform={noiseTransform}>
+        <Rect x={-width * 0.4} y={-height * 0.4} width={width * 1.8} height={height * 1.8}>
+          <FractalNoise freqX={0.0035} freqY={0.0035} octaves={3} seed={7} />
+          <Blur blur={NOISE_BLUR} />
+        </Rect>
+      </Group>
+
+      {auras.map((aura, index) => (
+        <BreathingAura key={index} aura={aura} clock={clock} />
       ))}
-    </View>
+    </Canvas>
   );
 }
 
-// Re-renders only when the theme changes (context), never on timer state.
 export const PulsingBackground = memo(PulsingBackgroundBase);
 
-function Blob({ config }: { config: BlobConfig }) {
-  const breath = useRef(new Animated.Value(0)).current;
-  const drift = useRef(new Animated.Value(0)).current;
+function BreathingAura({
+  aura,
+  clock,
+}: {
+  aura: Aura;
+  clock: ReturnType<typeof useSharedValue<number>>;
+}) {
+  // Position and size share the same wave at different rates, so an aura swells
+  // as it wanders rather than doing both on the same beat.
+  const centre = useDerivedValue(() => {
+    const angle = (clock.value * aura.rate + aura.phase) * 2 * Math.PI;
+    return vec(aura.x + Math.cos(angle) * aura.drift, aura.y + Math.sin(angle * 1.3) * aura.drift);
+  }, [clock]);
 
-  useEffect(() => {
-    const makeLoop = (value: Animated.Value, duration: number) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(value, { toValue: 1, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-          Animated.timing(value, { toValue: 0, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        ]),
-      );
-    const breathLoop = makeLoop(breath, config.breathMs);
-    const driftLoop = makeLoop(drift, config.driftMs);
-    breathLoop.start();
-    driftLoop.start();
-    return () => {
-      breathLoop.stop();
-      driftLoop.stop();
-    };
-  }, [breath, drift, config.breathMs, config.driftMs]);
+  const radius = useDerivedValue(() => {
+    const angle = (clock.value * aura.rate * 1.7 + aura.phase) * 2 * Math.PI;
+    return aura.radius * (1 + Math.sin(angle) * 0.12);
+  }, [clock]);
 
-  const opacity = breath.interpolate({ inputRange: [0, 1], outputRange: [0.45, 1] });
-  // Breathing scale is folded into the GPU upscale factor.
-  const scale = breath.interpolate({ inputRange: [0, 1], outputRange: [BASE_SCALE * 0.92, BASE_SCALE * 1.16] });
-  const translateX = drift.interpolate({ inputRange: [0, 1], outputRange: [-config.driftX, config.driftX] });
-  const translateY = drift.interpolate({ inputRange: [0, 1], outputRange: [-config.driftY, config.driftY] });
+  const cx = useDerivedValue(() => centre.value.x, [centre]);
+  const cy = useDerivedValue(() => centre.value.y, [centre]);
 
   return (
-    <Animated.View
-      pointerEvents="none"
-      style={[
-        styles.blob,
-        {
-          left: config.cx - SVG_RES / 2,
-          top: config.cy - SVG_RES / 2,
-          opacity,
-          transform: [{ translateX }, { translateY }, { scale }],
-        },
-      ]}
-    >
-      <Svg width={SVG_RES} height={SVG_RES}>
-        <Defs>
-          <RadialGradient id={config.id} cx="50%" cy="50%" r="50%">
-            <Stop offset="0%" stopColor={config.color} stopOpacity={config.core} />
-            <Stop offset="42%" stopColor={config.color} stopOpacity={config.core * 0.4} />
-            <Stop offset="100%" stopColor={config.color} stopOpacity={0} />
-          </RadialGradient>
-        </Defs>
-        <Rect x="0" y="0" width={SVG_RES} height={SVG_RES} fill={`url(#${config.id})`} />
-      </Svg>
-    </Animated.View>
+    <Group>
+      <Circle cx={cx} cy={cy} r={radius}>
+        <RadialGradient
+          c={centre}
+          r={radius}
+          colors={[withAlpha(aura.color, 0.38), withAlpha(aura.color, 0.12), withAlpha(aura.color, 0)]}
+          positions={[0, 0.45, 1]}
+        />
+      </Circle>
+    </Group>
   );
 }
-
-const styles = StyleSheet.create({
-  blob: {
-    position: 'absolute',
-    width: SVG_RES,
-    height: SVG_RES,
-  },
-});
