@@ -1,12 +1,29 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  Easing,
+  Extrapolation,
+  interpolate,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { type Palette, type ThemeName } from '../theme/colors';
 import { useTheme } from '../theme/ThemeContext';
 import type { SoundLength, TapUnit } from '../hooks/useSettings';
 
 const MIN_AMOUNT = 1;
 const MAX_AMOUNT = 60;
+
+// Before the sheet has been laid out we still need a distance to slide in from.
+const ASSUMED_SHEET_HEIGHT = 600;
+// Past a quarter of its own height, or on a decisive flick, the sheet goes away.
+const CLOSE_DISTANCE_RATIO = 0.25;
+const CLOSE_VELOCITY = 800;
 
 type SettingsSheetProps = {
   visible: boolean;
@@ -41,12 +58,76 @@ export function SettingsSheet(props: SettingsSheetProps) {
     setAmountText(String(next));
   };
 
+  // How far the sheet sits below its resting place. Drives both the drag and the
+  // opening animation, so a gesture starting mid-open never jumps.
+  const translateY = useSharedValue(ASSUMED_SHEET_HEIGHT);
+  const sheetHeight = useSharedValue(ASSUMED_SHEET_HEIGHT);
+
+  useEffect(() => {
+    if (!visible) return;
+    translateY.value = sheetHeight.value;
+    translateY.value = withTiming(0, { duration: 280, easing: Easing.out(Easing.cubic) });
+  }, [visible, translateY, sheetHeight]);
+
+  // Slide away, then unmount. Marked as a worklet so the gesture can call it on
+  // the UI thread, while the cross and the backdrop call it from JS.
+  const slideAway = () => {
+    'worklet';
+    translateY.value = withTiming(
+      sheetHeight.value,
+      { duration: 220, easing: Easing.in(Easing.cubic) },
+      (finished) => {
+        if (finished) runOnJS(onClose)();
+      },
+    );
+  };
+
+  const dragToDismiss = Gesture.Pan()
+    .onUpdate((event) => {
+      translateY.value = Math.max(0, event.translationY); // never above the resting place
+    })
+    .onEnd((event) => {
+      const draggedFarEnough = event.translationY > sheetHeight.value * CLOSE_DISTANCE_RATIO;
+      const flickedDown = event.velocityY > CLOSE_VELOCITY;
+      if (draggedFarEnough || flickedDown) {
+        slideAway();
+      } else {
+        translateY.value = withSpring(0, { damping: 22, stiffness: 220 });
+      }
+    });
+
+  const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));
+  // The backdrop fades with the sheet, so dragging dims the screen back gradually.
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(translateY.value, [0, sheetHeight.value], [1, 0], Extrapolation.CLAMP),
+  }));
+
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={() => {}}>
-          <View style={styles.handle} />
-          <Text style={styles.title}>Réglages</Text>
+    <Modal visible={visible} transparent animationType="none" onRequestClose={slideAway}>
+      <View style={styles.root}>
+        <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={slideAway} />
+        </Animated.View>
+
+        <Animated.View
+          style={[styles.sheet, sheetStyle]}
+          onLayout={(event) => {
+            sheetHeight.value = event.nativeEvent.layout.height;
+          }}
+        >
+          {/* Only the handle and the title are draggable — the body keeps its taps
+              for the stepper and the text field, with no arbitration needed. */}
+          <GestureDetector gesture={dragToDismiss}>
+            <View style={styles.grabArea}>
+              <View style={styles.handle} />
+              <Text style={styles.title}>Réglages</Text>
+            </View>
+          </GestureDetector>
+
+          {/* Deliberately outside the gesture area, so a tap here is never a drag. */}
+          <Pressable onPress={slideAway} hitSlop={16} style={styles.close}>
+            <Ionicons name="close" size={24} color={colors.settingsIcon} />
+          </Pressable>
 
           {/* Duration per tap */}
           <View style={styles.block}>
@@ -112,8 +193,8 @@ export function SettingsSheet(props: SettingsSheetProps) {
               thumbColor={colors.switchThumb}
             />
           </View>
-        </Pressable>
-      </Pressable>
+        </Animated.View>
+      </View>
     </Modal>
   );
 }
@@ -143,9 +224,11 @@ function Segmented<T extends string>({
 
 const makeStyles = (colors: Palette) =>
   StyleSheet.create({
-    backdrop: {
+    root: {
       flex: 1,
       justifyContent: 'flex-end',
+    },
+    backdrop: {
       backgroundColor: colors.sheetBackdrop,
     },
     sheet: {
@@ -157,6 +240,11 @@ const makeStyles = (colors: Palette) =>
       paddingHorizontal: 24,
       paddingTop: 12,
       paddingBottom: 40,
+    },
+    // Generously tall on purpose: this is the only place the sheet can be grabbed,
+    // so it has to be easy to hit without looking.
+    grabArea: {
+      paddingBottom: 4,
     },
     handle: {
       alignSelf: 'center',
@@ -172,6 +260,15 @@ const makeStyles = (colors: Palette) =>
       fontWeight: '300',
       letterSpacing: 0.5,
       marginBottom: 24,
+    },
+    close: {
+      position: 'absolute',
+      top: 26,
+      right: 20,
+      width: 36,
+      height: 36,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     block: {
       marginBottom: 28,
