@@ -25,7 +25,8 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.USE_EXACT_ALARM",
-        "android.permission.SCHEDULE_EXACT_ALARM"
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
     "web": {
@@ -43,10 +44,15 @@
         {
           "sounds": [
             "./assets/sounds/chime.wav",
-            "./assets/sounds/chime-long.wav"
+            "./assets/sounds/chime_long.wav"
           ]
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "ce1ded55-dab0-4d96-88e0-41c92744de1d"
+      }
+    }
   }
 }

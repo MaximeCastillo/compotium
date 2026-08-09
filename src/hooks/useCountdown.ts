@@ -7,7 +7,9 @@ import type { SoundLength } from './useSettings';
 
 const MAX_SECONDS = 60 * 60; // a session is capped at 60 minutes
 const CHIME_SHORT = require('../../assets/sounds/chime.wav');
-const CHIME_LONG = require('../../assets/sounds/chime-long.wav');
+// Underscore, not a hyphen: these files are also embedded as Android resources,
+// whose names become Java identifiers (`R.raw.chime_long`).
+const CHIME_LONG = require('../../assets/sounds/chime_long.wav');
 
 // A running session survives the app being killed: the deadline is stored here
 // and read back on the next launch.
