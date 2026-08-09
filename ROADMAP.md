@@ -5,12 +5,10 @@ Relire en début de session. Retirer un item dès qu'il est livré (le résumer 
 
 ## En cours
 
-- [ ] **Valider le development build sur le téléphone** :
-  - « Alarmes et rappels » doit être **déjà accordée** sans intervention (c'est la preuve
-    que `USE_EXACT_ALARM` fait son travail pour un vrai utilisateur) ;
-  - rejouer le test « app tuée » → notif à la seconde ;
-  - test reporté « taps en rafale = une seule notif à l'heure » ;
-  - test reporté « permission notif refusée = l'app marche quand même ».
+- [ ] **Valider le build SDK 57** (branche `sdk-57`) — la migration ne doit **rien**
+  changer : démarrage, timer, notif app tuée, reprise du compteur, 2 thèmes, réglages
+  persistés, et surtout **fluidité du fond animé** (SDK 57 annonce des correctifs de
+  rendu/animation). Fusionner dans `master` seulement après.
 - [ ] Ressenti sur téléphone : valider double-tap stop, carillon, durée réglable.
 
 ## À faire (prochain — MVP)
@@ -18,9 +16,11 @@ Relire en début de session. Retirer un item dès qu'il est livré (le résumer 
 - [ ] **Carillon en son de notification** — les deux `.wav` sont déjà embarqués dans le
   binaire, donc c'est **du JS pur, sans rebuild**. Piège : un canal Android est
   **immuable une fois créé** ; changer son son impose un **nouvel identifiant** de canal.
-- [ ] Icône & splash aux couleurs de Compotium.
-- [ ] Installer ESLint (`npx expo lint` échoue : le paquet n'a jamais été installé, alors
-  que la boucle de vérif du `CLAUDE.md` le mentionne).
+- [ ] Icône & splash aux couleurs de Compotium (la config splash vit maintenant dans le
+  plugin `expo-splash-screen` d'`app.json`).
+- [ ] **Traiter les 46 erreurs ESLint** — le lint tourne enfin (ESLint installé avec le
+  SDK 57) et découvre du code jamais linté. Dominante : `react-hooks/refs`. Aucun rapport
+  avec la migration, c'est de la dette révélée. Session dédiée.
 
 ## Plus tard / idées
 
@@ -35,6 +35,9 @@ Relire en début de session. Retirer un item dès qu'il est livré (le résumer 
 
 ## Livré récemment
 
+- 2026-08-09 : **Migration Expo SDK 54 → 57** (RN 0.81 → 0.86), palier par palier.
+  Fin de la taxe de décalage de versions ; permissions de service audio en avant-plan
+  retirées au passage.
 - 2026-08-09 : **Development build Android (EAS)** — sortie d'Expo Go. Permissions
   d'alarme exacte déclarées, les deux carillons embarqués, `RECORD_AUDIO` retiré.
   APK produit en 8 min ; validation téléphone en cours.

@@ -15,6 +15,39 @@ Format :
 
 ---
 
+## 2026-08-09 — Rattraper trois SDK d'un coup
+
+**Construit.** Migration **Expo 54 → 55 → 56 → 57** (React Native 0.81 → 0.86), sur une
+branche, palier par palier, un commit par palier vert. Trois correctifs seulement dans tout
+le code. Au passage : suppression des permissions de service audio en avant-plan.
+
+**Appris.**
+- 🆕 **Être en retard sur le SDK est une taxe, pas un état neutre.** Les paquets `expo-*`
+  portent désormais le numéro du SDK (`expo-audio@57.x`) : en SDK 54, npm résolvait les
+  dépendances transitives vers la génération 57 et l'app crashait au démarrage. En 57, la
+  résolution par défaut est simplement correcte — le problème ne se pose plus.
+- 🆕 **`expo-doctor` est l'outil qui manquait.** Il détecte les doublons de modules natifs
+  et valide le schéma de config. `expo install --check` ne voit **que** les dépendances
+  directes — c'est précisément l'angle mort qui nous a coûté un build.
+- 🆕 **Migrer ≠ recréer.** 1 317 lignes, 11 dépendances légères : c'était un bump de
+  versions. Recréer aurait risqué de perdre les palettes verrouillées et les cas limites
+  durcis, pour zéro gain. Le monter **palier par palier** localise la casse gratuitement,
+  puisqu'on ne compile en natif qu'à l'arrivée.
+- 🆕 **Un bundle qui passe ne prouve rien sur les types.** `StyleSheet.absoluteFillObject`
+  a disparu en RN 0.85 : Metro bundlait sans broncher, seul `tsc` l'a vu. Les deux vérifs
+  ne se remplacent pas.
+- 🆕 **Une rustine de version a une date de péremption.** Les `overrides` posés le matin
+  pour survivre en SDK 54 auraient recréé le même crash **à l'envers** en SDK 57. Épingler
+  une version, c'est contracter une dette qu'il faut penser à rembourser.
+
+**Victoires / galères.** Trois majeures traversées avec 3 lignes de code touchées — le
+minimalisme du produit (pas de routeur, pas de réseau, pas de webview) a payé
+comptant. Et `expo-doctor` a signalé exactement la classe de bug qui nous avait coûté un
+build, ce qui l'a fait entrer dans la boucle de vérif du `CLAUDE.md`.
+
+**Prochaine fois.** Valider le build 57 sur le téléphone (surtout la fluidité du fond),
+fusionner dans `master`. Puis le carillon en son de notification — toujours du JS pur.
+
 ## 2026-08-09 — Sortir d'Expo Go : le premier build natif
 
 **Construit.** Un **development build Android** via EAS Build (cloud), en 8 min. Il déclare

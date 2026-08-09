@@ -158,3 +158,29 @@ local : la machine n'a ni JDK, ni SDK Android, ni Android Studio. Le cycle de de
 pas — Metro et Fast Refresh continuent ; seuls les changements **natifs** exigent un rebuild.
 Écarté : rester en Expo Go (les trois besoins restent morts), build local (des heures
 d'outillage pour le même résultat).
+
+## 2026-08-09 — Migration vers Expo SDK 57 (remplace le choix du SDK 54)
+
+**Contexte.** Le SDK 54 avait été retenu pour **une seule raison** : le SDK 57 ne passait
+pas dans Expo Go. Le passage au development build a supprimé cette contrainte. Rester
+trois SDK en arrière était devenu une taxe : le registre npm sert par défaut les paquets
+de l'ère 57, et le crash `AnyTypeCache` du premier build natif en était le symptôme direct.
+**Décision.** Migration **54 → 55 → 56 → 57** (React Native 0.81 → 0.86), palier par palier,
+chacun vérifié en local (`expo-doctor`, `tsc`, bundle) et commité séparément ; **un seul**
+build natif à l'arrivée. Les `overrides` qui épinglaient `expo-asset`/`expo-font` sont
+supprimés — en SDK 57 les versions publiées par défaut sont les bonnes.
+**Pourquoi.** Le bon moment : 15 jours d'existence, 1 317 lignes, aucun utilisateur.
+Écarté : **recréer l'app** (risque de perdre les palettes verrouillées, les réglages
+visuels et les cas limites durcis, pour zéro gain — c'était un bump de dépendances), et
+rester en 54 (la taxe de décalage revient à chaque `npm install`).
+
+## 2026-08-09 — Pas de lecture audio en arrière-plan
+
+**Contexte.** Depuis le SDK 55, le plugin `expo-audio` active `enableBackgroundPlayback`
+par défaut : deux permissions de service en avant-plan, un service Android, et le mode
+audio de fond côté iOS.
+**Décision.** `enableBackgroundPlayback: false` (comme `recordAudioAndroid: false`).
+**Pourquoi.** L'architecture fait explicitement l'inverse : **premier plan = carillon
+in-app, arrière-plan = notification planifiée**, jamais les deux. La lecture en fond n'est
+jamais utilisée, et `FOREGROUND_SERVICE_MEDIA_PLAYBACK` est scrutée par Google Play.
+Ne jamais demander une permission qu'on n'utilise pas.
