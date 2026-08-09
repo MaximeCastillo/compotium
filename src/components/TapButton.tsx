@@ -1,136 +1,132 @@
-import {
-  BlurMask,
-  Canvas,
-  Circle,
-  Group,
-  RadialGradient,
-  SweepGradient,
-  vec,
-} from '@shopify/react-native-skia';
+import { Canvas, Circle, Group, LinearGradient, RadialGradient, rect, vec } from '@shopify/react-native-skia';
 import { useEffect, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import {
-  Easing,
-  useDerivedValue,
-  useSharedValue,
-  withRepeat,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
+import { Easing, useDerivedValue, useSharedValue, withRepeat, withSpring, withTiming } from 'react-native-reanimated';
 import { withAlpha } from '../theme/alpha';
 import { durations, type Palette } from '../theme/colors';
 import { useTheme } from '../theme/ThemeContext';
 
 type TapButtonProps = {
   isRunning: boolean;
-  amount: number; // how much one tap adds (from settings)
-  unit: string; // "min" or "sec"
+  amount: number;
+  unit: string;
   onPress: () => void;
 };
 
-const CORE = 100; // radius of the dark centre — the "shadow" of the hole
-const CANVAS = 420; // wide enough for the disc and its glow to fade out inside
+const CORE = 96; // radius of the black disc — the shadow of the hole
+const CANVAS = 420;
 const CENTRE = CANVAS / 2;
-// The canvas is far larger than the space the button should claim in the column,
-// so it overflows symmetrically instead of pushing the countdown around.
-const FOOTPRINT = CORE * 2 + 56;
+const FOOTPRINT = CORE * 2 + 56; // layout space claimed; the canvas overflows it
 const CANVAS_OFFSET = (FOOTPRINT - CANVAS) / 2;
-const DISC = 158; // radius of the accretion disc
-const DISC_FLATTEN = 0.2; // seen nearly edge-on, as in the film
-const ROTATION_MS = 72000; // one revolution — slow enough to feel like drift
+
+const DISC = 168; // outer radius of the accretion disc
+const DISC_WIDTH = 46; // its thickness, before being squashed
+const EDGE_ON = 0.15; // how flat the disc is seen — low means nearly edge-on
 
 /**
- * The single gesture of the app, drawn as a black hole.
+ * The single gesture of the app, drawn as Gargantua.
  *
- * Layered back to front: an outer glow, the far side of the accretion disc, the
- * dark core that hides its middle, the photon ring hugging that core, then the
- * near side of the disc and the vertical bow of light arcing over the top —
- * which is what makes the shape read as Gargantua rather than as a ring.
+ * What makes the shape readable is contrast, not glow: a hard-edged black disc,
+ * a thin brilliant ring hugging it, and a disc seen so nearly edge-on that it
+ * reads as a band. An earlier attempt leaned on wide blurs and came out as a
+ * fuzzy halo — the film's image is sharp.
  *
- * Skia draws all of it, including the core, so that the parts meant to pass in
- * front of the hole actually do. The Pressable is a transparent overlay.
+ * Depth comes from draw order. The disc is painted once behind the core, which
+ * hides its middle, then painted again clipped to the lower half so its near
+ * side crosses in FRONT. The same ring squashed the other way becomes the light
+ * bent over the top and under the bottom — the detail that says "black hole"
+ * rather than "ring".
+ *
+ * The bright side stays put: in the film the asymmetry comes from matter racing
+ * towards the viewer, not from the disc turning. That is also cheaper, since
+ * nothing has to be re-shaded.
  */
 export function TapButton({ isRunning, amount, unit, onPress }: TapButtonProps) {
   const colors = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const spin = useSharedValue(0);
   const breath = useSharedValue(0);
   const press = useSharedValue(0);
 
   useEffect(() => {
-    spin.value = withRepeat(withTiming(1, { duration: ROTATION_MS, easing: Easing.linear }), -1, false);
     breath.value = withRepeat(
       withTiming(1, { duration: durations.buttonBreath, easing: Easing.inOut(Easing.sin) }),
       -1,
       true,
     );
-  }, [spin, breath]);
+  }, [breath]);
 
-  // A running timer burns brighter; at rest the hole is banked down.
-  const intensity = isRunning ? 1 : 0.62;
+  const intensity = isRunning ? 1 : 0.6;
+  const origin = vec(CENTRE, CENTRE);
 
-  const discTransform = useDerivedValue(
-    () => [{ rotate: spin.value * 2 * Math.PI }, { scaleY: DISC_FLATTEN }],
-    [spin],
-  );
-  const bowTransform = useDerivedValue(
-    () => [{ rotate: -spin.value * 2 * Math.PI }, { scaleX: DISC_FLATTEN }],
-    [spin],
-  );
-  const glowScale = useDerivedValue(
-    () => [{ scale: 1 + breath.value * 0.06 - press.value * 0.05 }],
+  const halo = useDerivedValue(
+    () => [{ scale: 1 + breath.value * 0.03 - press.value * 0.04 }],
     [breath, press],
   );
-  const coreScale = useDerivedValue(() => [{ scale: 1 - press.value * 0.06 }], [press]);
 
-  const origin = vec(CENTRE, CENTRE);
-  const hot = withAlpha(colors.buttonPlus, 0.95 * intensity); // the bright limb
-  const cool = withAlpha(colors.auraTeal, 0.18 * intensity); // the receding one
+  // Bright limb on the left, receding limb on the right.
+  const discColors = [
+    withAlpha(colors.buttonPlus, 0.95 * intensity),
+    withAlpha(colors.auraTeal, 0.5 * intensity),
+    withAlpha(colors.auraTeal, 0.14 * intensity),
+  ];
+  const discGradient = (
+    <LinearGradient
+      start={vec(CENTRE - DISC, CENTRE)}
+      end={vec(CENTRE + DISC, CENTRE)}
+      colors={discColors}
+      positions={[0, 0.55, 1]}
+    />
+  );
 
   return (
     <View style={styles.wrapper}>
       <Canvas style={styles.canvas} pointerEvents="none">
-        {/* Diffuse light spilling into the surrounding space. */}
-        <Group transform={glowScale} origin={origin}>
-          <Circle c={origin} r={DISC * 1.25}>
+        <Group transform={halo} origin={origin}>
+          {/* Light spilling into the surrounding space. */}
+          <Circle c={origin} r={DISC * 1.15}>
             <RadialGradient
               c={origin}
-              r={DISC * 1.25}
-              colors={[withAlpha(colors.auraTeal, 0.16 * intensity), withAlpha(colors.auraTeal, 0)]}
+              r={DISC * 1.15}
+              colors={[withAlpha(colors.auraTeal, 0), withAlpha(colors.auraTeal, 0.13 * intensity), withAlpha(colors.auraTeal, 0)]}
+              positions={[0.45, 0.62, 1]}
             />
           </Circle>
-        </Group>
 
-        {/* Far side of the disc — drawn first, so the core will cover its middle. */}
-        <Group transform={discTransform} origin={origin}>
-          <Circle c={origin} r={DISC} style="stroke" strokeWidth={54}>
-            <SweepGradient c={origin} colors={[hot, cool, cool, hot]} positions={[0, 0.3, 0.7, 1]} />
-            <BlurMask blur={22} style="normal" />
-          </Circle>
-        </Group>
+          {/* Light bent over the top and under the bottom. Its middle will be
+              covered by the core, leaving the two arcs that sell the shape. */}
+          <Group origin={origin} transform={[{ scaleX: EDGE_ON }]}>
+            <Circle c={origin} r={DISC * 0.94} style="stroke" strokeWidth={DISC_WIDTH * 0.8}>
+              {discGradient}
+            </Circle>
+          </Group>
 
-        {/* The shadow itself. */}
-        <Group transform={coreScale} origin={origin}>
+          {/* Far side of the disc. */}
+          <Group origin={origin} transform={[{ scaleY: EDGE_ON }]}>
+            <Circle c={origin} r={DISC} style="stroke" strokeWidth={DISC_WIDTH}>
+              {discGradient}
+            </Circle>
+          </Group>
+
+          {/* The shadow, hard-edged. */}
           <Circle c={origin} r={CORE} color={colors.bgTop} />
-          {/* Photon ring: a thin, very bright edge is what sells the scale. */}
+          {/* The photon ring is the brightest thing on screen; it gives the scale. */}
           <Circle
             c={origin}
             r={CORE + 1}
             style="stroke"
-            strokeWidth={2.5}
-            color={withAlpha(colors.buttonPlus, 0.9 * intensity)}
-          >
-            <BlurMask blur={4} style="normal" />
-          </Circle>
-        </Group>
+            strokeWidth={2}
+            color={withAlpha(colors.digitBright, 0.85 * intensity)}
+          />
 
-        {/* Light bent over the top and under the bottom — Gargantua's signature. */}
-        <Group transform={bowTransform} origin={origin} opacity={0.55}>
-          <Circle c={origin} r={DISC * 0.92} style="stroke" strokeWidth={34}>
-            <SweepGradient c={origin} colors={[cool, hot, hot, cool]} positions={[0, 0.28, 0.72, 1]} />
-            <BlurMask blur={26} style="normal" />
-          </Circle>
+          {/* Near side of the disc, clipped to below the centre so it crosses in front. */}
+          <Group clip={rect(0, CENTRE, CANVAS, CANVAS - CENTRE)}>
+            <Group origin={origin} transform={[{ scaleY: EDGE_ON }]}>
+              <Circle c={origin} r={DISC} style="stroke" strokeWidth={DISC_WIDTH}>
+                {discGradient}
+              </Circle>
+            </Group>
+          </Group>
         </Group>
       </Canvas>
 
@@ -166,7 +162,6 @@ const makeStyles = (colors: Palette) =>
       width: CANVAS,
       height: CANVAS,
     },
-    // Transparent: the core it sits on is painted by Skia underneath.
     hitArea: {
       width: CORE * 2,
       height: CORE * 2,
@@ -176,13 +171,13 @@ const makeStyles = (colors: Palette) =>
     },
     plus: {
       color: colors.buttonPlus,
-      fontSize: 40,
+      fontSize: 38,
       fontWeight: '200',
       letterSpacing: 1,
     },
     unit: {
       color: colors.buttonUnit,
-      fontSize: 14,
+      fontSize: 13,
       letterSpacing: 3,
       textTransform: 'uppercase',
       marginTop: 2,
