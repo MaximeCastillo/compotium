@@ -14,14 +14,24 @@ pourquoi : **`DECISIONS.md`**. Plan vivant : **`ROADMAP.md`**.
 
 ## Stack (décidée — ne pas re-challenger)
 
-**Expo SDK 54** (managed workflow, compatible **Expo Go** des stores) · **React Native** ·
-**TypeScript** (strict). Base `blank-typescript`, un seul écran au MVP. Animations via
-**React Native Reanimated** et retour tactile via **expo-haptics** (ajoutés au moment de
-construire l'écran). **Expo Router** repoussé au 1ᵉʳ 2ᵉ écran (YAGNI — voir `DECISIONS.md`).
-**Development build** prévu à la V2 (module natif « Ne pas déranger »).
+**Expo SDK 54** (managed workflow) · **React Native** · **TypeScript** (strict). Base
+`blank-typescript`, un seul écran au MVP. Animations via **React Native Reanimated** et
+retour tactile via **expo-haptics** (ajoutés au moment de construire l'écran).
+**Expo Router** repoussé au 1ᵉʳ 2ᵉ écran (YAGNI — voir `DECISIONS.md`).
 **Android d'abord** pour dev/test (pas d'iPhone dispo) ; **iOS gardé ouvert par
 construction** — même code, portage plus tard. Pas de backend au MVP : aucun secret
 côté client.
+
+**Development build** (depuis le 2026-08-09, voir `DECISIONS.md`) — on a quitté Expo Go,
+qui plafonnait sur trois besoins natifs. Conséquences au quotidien :
+
+- Le cycle ne change pas : Metro sert le JS, Fast Refresh marche. `npx expo start --dev-client`.
+- **Seuls les changements natifs exigent un rebuild** : permissions, config plugins,
+  ressources embarquées (sons, icônes), ajout d'un module natif. Le JS est gratuit.
+- Rebuild : `npx eas-cli build --profile development --platform android` (cloud, 10-90 min,
+  15 builds/mois). Grouper les changements natifs pour ne pas payer la file plusieurs fois.
+- Les ressources natives Android (sons…) doivent porter un **nom valide** : minuscules,
+  chiffres, underscores. Pas de tiret — le nom devient un identifiant Java.
 
 ## Langue
 
@@ -74,8 +84,12 @@ capacités du téléphone.
    — compile tout le graphe de modules ; attrape imports/exports cassés et deps
    circulaires que `tsc` ne voit pas. À lancer **au moins avant un commit notable et
    après un gros refactor**.
-3. **Lint** : `npx expo lint`.
-4. **Le vrai test** : ça tourne **sur le téléphone** via Expo Go (scan du QR).
+3. **Lint** : `npx expo lint` (⚠️ ESLint pas encore installé — voir `ROADMAP.md`).
+4. **Config native**, avant tout rebuild : `npx expo config --type introspect` — exécute
+   réellement les config plugins et montre le `AndroidManifest.xml` résultant. Un build
+   cloud raté coûte 10-90 min de file.
+5. **Le vrai test** : ça tourne **sur le téléphone**, dans le development build
+   (`npx expo start --dev-client`).
 Pas de tests unitaires au MVP (YAGNI) ; on en ajoute dès qu'une logique le mérite.
 
 **Piège Fast Refresh** : après un gros refactor (renommage d'exports, forme d'un hook,

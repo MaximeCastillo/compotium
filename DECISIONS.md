@@ -143,3 +143,18 @@ quoi le retard revient chez tous les utilisateurs.
 est réservé par Google Play aux réveils/minuteries/agendas — Compotium en est un, donc
 l'usage est légitime. Écarté : planifier la notif en avance pour compenser (le retard est
 imprévisible), et une tâche de fond (15 min minimum sur Android, inutilisable ici).
+
+## 2026-08-09 — Passage au development build (Android, EAS)
+
+**Contexte.** Trois besoins butaient sur la même limite : le manifeste d'Expo Go est figé,
+donc une app qui y tourne ne peut jamais déclarer ses propres permissions ni embarquer ses
+propres ressources natives. Bloqués : l'alarme exacte pour tous, le carillon en son de
+notification, et Skia.
+**Décision.** On quitte Expo Go pour un **development build** construit par **EAS Build
+(cloud)**, profil `development` (APK, distribution interne). Le natif prévisible est
+embarqué en une passe : permissions d'alarme exacte + les deux carillons.
+**Pourquoi.** C'était le plafond, pas un contournement ponctuel. Build **cloud** et non
+local : la machine n'a ni JDK, ni SDK Android, ni Android Studio. Le cycle de dev ne change
+pas — Metro et Fast Refresh continuent ; seuls les changements **natifs** exigent un rebuild.
+Écarté : rester en Expo Go (les trois besoins restent morts), build local (des heures
+d'outillage pour le même résultat).
