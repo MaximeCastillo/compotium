@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
@@ -7,6 +8,10 @@ import type { SoundLength } from './useSettings';
 const MAX_SECONDS = 60 * 60; // a session is capped at 60 minutes
 const CHIME_SHORT = require('../../assets/sounds/chime.wav');
 const CHIME_LONG = require('../../assets/sounds/chime-long.wav');
+
+// A running session survives the app being killed: the deadline is stored here
+// and read back on the next launch.
+const SESSION_KEY = 'compotium.session.v1';
 
 // How often we re-read the wall clock. Faster than one second so the displayed
 // value flips close to the real boundary even when a tick fires late.
@@ -32,8 +37,47 @@ function secondsUntil(deadline: number) {
 export function useCountdown(incrementSeconds: number, soundLength: SoundLength) {
   const [endsAt, setEndsAt] = useState<number | null>(null); // null = at rest
   const [remaining, setRemaining] = useState(0);
+  const [isHydrated, setIsHydrated] = useState(false);
   const isRunning = remaining > 0;
   const isAtMax = remaining >= MAX_SECONDS;
+
+  // Restore a session that outlived the app. The stored deadline is untrusted
+  // input: keep it only if it is a real timestamp, still ahead of us, and within
+  // the cap — which also rules out a session that ended while we were away and a
+  // device clock that moved under our feet.
+  useEffect(() => {
+    let active = true;
+    AsyncStorage.getItem(SESSION_KEY)
+      .then((storedValue) => {
+        if (!active || storedValue === null) return;
+        const storedEndsAt = Number(storedValue);
+        const now = Date.now();
+        const isUsable =
+          Number.isFinite(storedEndsAt) &&
+          storedEndsAt > now &&
+          storedEndsAt <= now + MAX_SECONDS * 1000;
+        // A tap racing this async read wins — never overwrite a live deadline.
+        if (isUsable) setEndsAt((currentEndsAt) => currentEndsAt ?? storedEndsAt);
+      })
+      .catch(() => {}) // unreadable storage is not a reason to break the timer
+      .finally(() => {
+        if (active) setIsHydrated(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Mirror the deadline to storage. Gated on hydration so we never erase a stored
+  // session with our own initial `null`.
+  useEffect(() => {
+    if (!isHydrated) return;
+    const write =
+      endsAt === null
+        ? AsyncStorage.removeItem(SESSION_KEY)
+        : AsyncStorage.setItem(SESSION_KEY, String(endsAt));
+    write.catch(() => {});
+  }, [endsAt, isHydrated]);
 
   // Both chimes are preloaded; we play whichever the setting selects. Held in a
   // ref so changing the setting never tears down the running clock below.
