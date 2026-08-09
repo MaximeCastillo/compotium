@@ -184,3 +184,32 @@ audio de fond côté iOS.
 in-app, arrière-plan = notification planifiée**, jamais les deux. La lecture en fond n'est
 jamais utilisée, et `FOREGROUND_SERVICE_MEDIA_PLAYBACK` est scrutée par Google Play.
 Ne jamais demander une permission qu'on n'utilise pas.
+
+## 2026-08-09 — Skia comme moteur de rendu (remplace SVG pour le décor)
+
+**Contexte.** La direction artistique visée (fond liquide, halo « Gargantua », vraies
+particules) demande du flou gaussien, des modes de fusion et du bruit procédural — hors
+de portée de `react-native-svg` à coût raisonnable.
+**Décision.** `@shopify/react-native-skia` pour le décor animé (fond, bouton `+`,
+désintégration), avec **Reanimated 4 + worklets** pour animer sur le thread d'UI. Versions
+imposées par le SDK 57. L'UI structurelle (textes, boutons, réglages) reste en composants
+React Native.
+**Pourquoi.** Skia est le moteur 2D de Chrome et d'Android : on accède au pipeline
+graphique, pas à une description d'objets. Écarté : rester en SVG (le flou et le bruit
+coûtent trop cher), et animer depuis le JS (le thread est gelé dès que l'app travaille).
+Note : `babel-preset-expo` injecte **tout seul** le plugin worklets — pas de
+`babel.config.js` à écrire (un fichier manuel casse même le bundle, le preset n'étant pas
+remonté à la racine de `node_modules`).
+
+## 2026-08-09 — Gesture Handler pour les gestes
+
+**Contexte.** Le panneau de réglages ne se fermait qu'en visant une bande étroite de fond :
+sa poignée était purement décorative. Il fallait un glissement.
+**Décision.** `react-native-gesture-handler` plutôt que `PanResponder`. La zone de saisie
+est limitée à la poignée et au titre ; la croix de fermeture est placée **hors** du
+détecteur de geste.
+**Pourquoi.** Reanimated arrivant de toute façon avec Skia, le couple fait courir geste
+**et** animation sur le thread d'UI. Surtout, Gesture Handler apporte un vrai arbitrage :
+c'est ce qui garantit que le glissement ne vole pas les appuis du stepper et du champ de
+saisie. `PanResponder` n'a pas d'arbitrage — il aurait fallu bricoler. Piège retenu :
+sans `GestureHandlerRootView` à la racine, **aucun geste ne se déclenche, sans erreur**.

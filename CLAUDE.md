@@ -15,9 +15,18 @@ pourquoi : **`DECISIONS.md`**. Plan vivant : **`ROADMAP.md`**.
 ## Stack (décidée — ne pas re-challenger)
 
 **Expo SDK 57** (managed workflow, RN 0.86) · **React Native** · **TypeScript** (strict). Base
-`blank-typescript`, un seul écran au MVP. Animations via **React Native Reanimated** et
-retour tactile via **expo-haptics** (ajoutés au moment de construire l'écran).
+`blank-typescript`, un seul écran au MVP. Retour tactile via **expo-haptics**.
 **Expo Router** repoussé au 1ᵉʳ 2ᵉ écran (YAGNI — voir `DECISIONS.md`).
+
+**Rendu et animation** — **Skia** dessine le décor animé (fond, halo du bouton `+`,
+particules) ; **Reanimated 4 + worklets** animent **sur le thread d'UI** ; **Gesture
+Handler** gère les gestes. L'UI structurelle reste en composants React Native.
+Deux pièges qui échouent **en silence** :
+
+- Sans **`GestureHandlerRootView`** à la racine, aucun geste ne se déclenche, sans erreur.
+- **Ne pas écrire de `babel.config.js`** : `babel-preset-expo` injecte déjà le plugin
+  worklets, et un fichier manuel ne peut pas résoudre le preset (il vit sous
+  `node_modules/expo/node_modules/`) — le bundle casse sur un `transformFile` obscur.
 **Android d'abord** pour dev/test (pas d'iPhone dispo) ; **iOS gardé ouvert par
 construction** — même code, portage plus tard. Pas de backend au MVP : aucun secret
 côté client.

@@ -15,6 +15,38 @@ Format :
 
 ---
 
+## 2026-08-09 — Dessiner avec un moteur graphique
+
+**Construit.** Le dépôt privé GitHub. Un panneau de réglages qui **se ferme** (glissement
+vers le bas + croix) — sa poignée n'avait jamais été qu'un dessin. Et la direction
+artistique : fond nébuleuse en bruit fractal, halo **« Gargantua »** sur le bouton `+`,
+désintégration en vraies particules au STOP. Palettes intactes.
+
+**Appris.**
+- 🆕 **SVG décrit, Skia dessine.** SVG est une liste d'objets que le système rasterise ;
+  Skia est le moteur 2D de Chrome et d'Android — on touche au pipeline graphique. D'où le
+  vrai flou gaussien, les modes de fusion et le bruit procédural, hors de portée en SVG.
+- 🆕 **Le thread d'UI.** Reanimated compile les fonctions d'animation en **worklets** qui
+  tournent hors du JS. C'est ce qui rend un geste fluide même quand le JS travaille — et
+  c'est la vraie réponse au « JS gelé » croisé toute la journée sur le timer.
+- 🆕 **L'ordre de dessin fait le volume.** Le halo n'est lisible comme trou noir que parce
+  que le disque est peint *avant* le cœur, puis l'arc vertical *après*. Il a fallu que
+  Skia peigne aussi le bouton — une vue native au-dessus aurait masqué la partie censée
+  passer devant.
+- 🆕 **Un geste sans arbitrage vole les appuis.** Gesture Handler arbitre nativement ; j'ai
+  quand même sorti la croix de la zone de geste, parce que la meilleure gestion d'un
+  conflit reste de ne pas le créer.
+- 🆕 **Le JS est gratuit, le natif non.** Le build lancé avant d'écrire une ligne de design
+  contient tout le nécessaire : il n'embarque que les modules natifs, le JS vient de Metro.
+
+**Victoires / galères.** Un `babel.config.js` écrit « par précaution » a cassé le bundle
+sur un `transformFile` incompréhensible — le preset Expo injecte déjà le plugin worklets,
+et le fichier manuel ne pouvait pas le résoudre. Diagnostic en écartant le fichier plutôt
+qu'en lisant l'erreur : parfois le test le plus bête est le plus rapide.
+
+**Prochaine fois.** Juger le rendu sur le téléphone — fluidité, tenue dans les deux
+thèmes, chauffe. Puis le carillon en son de notification.
+
 ## 2026-08-09 — Rattraper trois SDK d'un coup
 
 **Construit.** Migration **Expo 54 → 55 → 56 → 57** (React Native 0.81 → 0.86), sur une

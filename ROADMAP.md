@@ -5,10 +5,11 @@ Relire en début de session. Retirer un item dès qu'il est livré (le résumer 
 
 ## En cours
 
-- [ ] **Valider le build SDK 57** (branche `sdk-57`) — la migration ne doit **rien**
-  changer : démarrage, timer, notif app tuée, reprise du compteur, 2 thèmes, réglages
-  persistés, et surtout **fluidité du fond animé** (SDK 57 annonce des correctifs de
-  rendu/animation). Fusionner dans `master` seulement après.
+- [ ] **Valider le design Skia** (branche `design-skia`) — fond nébuleuse, halo
+  « Gargantua », particules au STOP, glissement du panneau de réglages + croix.
+  Points sensoriels à juger : **fluidité** (le fond a déjà causé des micro-freezes),
+  tenue du design dans **les deux thèmes**, et **chauffe** après 10 min. Fusionner
+  seulement après.
 - [ ] Ressenti sur téléphone : valider double-tap stop, carillon, durée réglable.
 
 ## À faire (prochain — MVP)
@@ -24,9 +25,6 @@ Relire en début de session. Retirer un item dès qu'il est livré (le résumer 
 
 ## Plus tard / idées
 
-- **Skia** (débloqué par le dev build) : vraie désintégration en particules + fond
-  liquide/nébuleuse + halo « Gargantua » (style Interstellar : trou sombre, disque
-  lumineux asymétrique). Module natif → prévoir un rebuild.
 - V2 : **« Ne pas déranger »** pendant le timer (permission Android ; iOS via Focus/
   Screen Time).
 - Avant toute distribution : relire les permissions du manifeste et affiner
@@ -35,6 +33,12 @@ Relire en début de session. Retirer un item dès qu'il est livré (le résumer 
 
 ## Livré récemment
 
+- 2026-08-09 : **Dépôt privé GitHub** (`MaximeCastillo/compotium`).
+- 2026-08-09 : **Panneau de réglages fermable** — glissement vers le bas (Gesture Handler
+  + Reanimated, sur le thread d'UI) et croix de fermeture. La poignée n'était que décor.
+- 2026-08-09 : **Direction artistique Skia** — fond nébuleuse (bruit fractal + auras
+  déphasées), halo « Gargantua » sur le bouton `+` (disque d'accrétion asymétrique, anneau
+  de photons, arc vertical), désintégration en vraies particules au STOP.
 - 2026-08-09 : **Migration Expo SDK 54 → 57** (RN 0.81 → 0.86), palier par palier.
   Fin de la taxe de décalage de versions ; permissions de service audio en avant-plan
   retirées au passage.
