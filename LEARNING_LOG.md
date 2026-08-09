@@ -15,6 +15,41 @@ Format :
 
 ---
 
+## 2026-08-09 — Le timer qui survit à l'arrière-plan
+
+**Construit.** Le compte à rebours ne compte plus les secondes, il vise une **date de
+fin**. Il se resynchronise au retour au premier plan, **survit à la fermeture de l'app**
+(deadline persistée), et une **notification locale** planifiée sonne la fin même écran
+verrouillé ou app tuée. Permission demandée au premier tap, jamais au lancement.
+
+**Appris.**
+- 🆕 **Horloge relative vs absolue.** `remaining - 1` chaque seconde suppose que le JS
+  tourne en continu — faux sur mobile, l'OS gèle le thread en arrière-plan. Viser un
+  timestamp est **auto-correcteur** : peu importe si un tick est en retard ou manquant.
+  Même intuition qu'un `expires_at` en base plutôt qu'un compteur dans un process web.
+- 🆕 **`AppState`** : le cycle de vie mobile (`active` / `background` / `inactive`).
+  C'est *l'*événement qui dit « le JS vient de se réveiller, recalcule ».
+- 🆕 **Ce qu'une app a le droit de faire endormie : rien.** Pour agir à une heure donnée,
+  on ne *reste* pas éveillé — on **délègue à l'OS** (notification planifiée). Renversement
+  de perspective par rapport au serveur, où le process est toujours là.
+- 🆕 **Permission contextuelle.** Android 13+ exige `POST_NOTIFICATIONS` à l'exécution.
+  Demander au moment où ça a du sens (le premier tap) plutôt qu'au lancement, et **coder
+  le refus comme un cas normal**, pas comme une erreur.
+- 🆕 **Coordonner deux sources de son.** Carillon in-app *et* notif système pouvaient
+  se déclencher ensemble : un `setNotificationHandler` supprime la notif au premier plan.
+- **Rappel utile** : les appels asynchrones en rafale (taps répétés) veulent une **file
+  de promesses**, sinon une annulation peut arriver après la planification qu'elle visait.
+
+**Victoires / galères.** Le refactor a **simplifié** le hook au lieu de l'alourdir :
+supprimer la deadline démonte l'effet, donc le « pas de carillon au STOP » est vrai *par
+construction* — le ref `manualStop` a disparu. Piège évité de justesse : un tick pouvait
+rejouer le carillon avant le démontage (latch `hasEnded`). Et un faux positif marrant :
+`tsc` a craché 30 erreurs parce que mon shell était resté dans `node_modules/`.
+
+**Prochaine fois.** Valider les 9 scénarios sur le téléphone (notif écran verrouillé, app
+tuée, silence après STOP, refus de permission). Puis icône/splash, et le **development
+build** — qui débloque d'un coup Skia *et* le carillon comme son de notification.
+
 ## 2026-08-08 — De la page blanche à l'app aboutie (grosse session)
 
 **Construit.** Compotium, complet dans Expo Go : écran unique avec fond spatial vivant,

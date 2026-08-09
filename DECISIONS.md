@@ -104,3 +104,28 @@ correspondent exactement à l'intention produit.
 touche plus sauf raison explicite.
 **Pourquoi.** L'identité visuelle est trouvée et fait partie de l'âme de Compotium
 (désactiver les pollutions de l'esprit dans un espace apaisant). Éviter de dériver.
+
+## 2026-08-09 — Le timer est une date de fin, pas un compteur
+
+**Contexte.** Le compte à rebours décrémentait un compteur toutes les secondes. L'OS gèle
+le thread JS dès que l'app passe en arrière-plan : le timer dérivait, s'arrêtait, et ne
+sonnait jamais écran verrouillé.
+**Décision.** La source de vérité devient `endsAt`, un timestamp d'horloge murale ; les
+secondes restantes en sont dérivées à chaque tick et à chaque retour au premier plan
+(`AppState`). `endsAt` est persisté (AsyncStorage) pour survivre à la fermeture de l'app.
+**Pourquoi.** Une horloge absolue est auto-correctrice : peu importe si les ticks sont en
+retard ou absents. Écarté : garder `setInterval` en espérant qu'il survive (faux sur
+mobile), et une tâche de fond (interdite par le bac à sable pour ce besoin).
+
+## 2026-08-09 — L'OS sonne la fin, pas le JS
+
+**Contexte.** Même avec une horloge juste, aucun code JS ne tourne pour jouer le carillon
+si l'app est endormie ou tuée.
+**Décision.** Une **notification locale** est planifiée à `endsAt` et replanifiée à chaque
+changement. Permission demandée au **premier tap qui lance un timer**, jamais au
+lancement ; l'app reste pleinement fonctionnelle si elle est refusée. Premier plan = le
+carillon in-app, arrière-plan = la notification, jamais les deux.
+**Pourquoi.** Seul l'OS peut réveiller le téléphone à l'heure dite. La demande
+contextuelle protège le « geste unique » (`PRINCIPLES.md`) et le taux d'acceptation.
+Limite acceptée : le **son personnalisé** d'une notification exige un development build ;
+en Expo Go c'est le son système par défaut.

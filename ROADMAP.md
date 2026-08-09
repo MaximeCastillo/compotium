@@ -6,24 +6,30 @@ Relire en début de session. Retirer un item dès qu'il est livré (le résumer 
 ## En cours
 
 - [ ] Ressenti sur téléphone : valider double-tap stop, carillon, durée réglable.
+- [ ] **Valider le timer en arrière-plan sur le téléphone** : notif écran verrouillé,
+  notif app tuée, reprise du compteur à la réouverture, silence après un STOP.
 
 ## À faire (prochain — MVP)
 
-- [ ] **Timer robuste en arrière-plan** : compte à rebours basé sur un timestamp de fin
-  (recalcul au retour via AppState) + **notification locale** planifiée à la fin
-  (expo-notifications) pour sonner même app fermée. → gros morceau, session dédiée.
 - [ ] Icône & splash aux couleurs de Compotium.
+- [ ] Installer ESLint (`npx expo lint` échoue : le paquet n'a jamais été installé, alors
+  que la boucle de vérif du `CLAUDE.md` le mentionne).
 
 ## Plus tard / idées
 
 - **Dev build (Skia)** : vraie désintégration en particules + fond liquide/nébuleuse +
   halo « Gargantua » (style Interstellar : trou sombre, disque lumineux asymétrique).
+- **Son de notification personnalisé** (le carillon au lieu du son système) — exige le
+  config plugin `expo-notifications` + un dev build. À grouper avec l'item Skia.
 - V2 : **« Ne pas déranger »** pendant le timer (permission Android ; iOS via Focus/
   Screen Time).
 - Build Android installable hors Expo Go (APK via EAS) ; portage iOS.
 
 ## Livré récemment
 
+- 2026-08-09 : **Timer robuste en arrière-plan** — compte à rebours basé sur une date de
+  fin (resynchro via `AppState`), session persistée (survit à la fermeture de l'app), et
+  **notification locale** planifiée pour sonner écran verrouillé ou app tuée.
 - 2026-08-08 : **Persistance des réglages** (AsyncStorage) + **switch de thème quasi
   instantané** (auras rendues en petit SVG puis agrandies par le GPU).
 - 2026-08-08 : **Réglage son Court / Long** (version longue ~6,8 s du son cinématique) ;
