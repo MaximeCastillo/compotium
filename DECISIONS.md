@@ -129,3 +129,17 @@ carillon in-app, arrière-plan = la notification, jamais les deux.
 contextuelle protège le « geste unique » (`PRINCIPLES.md`) et le taux d'acceptation.
 Limite acceptée : le **son personnalisé** d'une notification exige un development build ;
 en Expo Go c'est le son système par défaut.
+
+## 2026-08-09 — Les notifications exigent une alarme *exacte* (Android 12+)
+
+**Contexte.** Les notifications de fin arrivaient ~40 s en retard. Cause trouvée dans le
+module natif (`ExpoSchedulingDelegate.setupAlarm`) : sans la permission d'alarme exacte,
+Android bascule silencieusement sur `setAndAllowWhileIdle`, une alarme **inexacte** qu'il
+regroupe pour économiser la batterie.
+**Décision.** En dev, on accorde « Alarmes et rappels » à Expo Go à la main (validé : à la
+seconde). Tout **build natif devra déclarer `USE_EXACT_ALARM`** dans son manifeste, sans
+quoi le retard revient chez tous les utilisateurs.
+**Pourquoi.** Une minuterie qui sonne en retard n'est pas une minuterie. `USE_EXACT_ALARM`
+est réservé par Google Play aux réveils/minuteries/agendas — Compotium en est un, donc
+l'usage est légitime. Écarté : planifier la notif en avance pour compenser (le retard est
+imprévisible), et une tâche de fond (15 min minimum sur Android, inutilisable ici).

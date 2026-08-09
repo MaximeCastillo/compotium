@@ -37,6 +37,11 @@ verrouillé ou app tuée. Permission demandée au premier tap, jamais au lanceme
   le refus comme un cas normal**, pas comme une erreur.
 - 🆕 **Coordonner deux sources de son.** Carillon in-app *et* notif système pouvaient
   se déclencher ensemble : un `setNotificationHandler` supprime la notif au premier plan.
+- 🆕 **« Planifié » ≠ « garanti à la seconde ».** Android a deux qualités de service
+  d'alarme, et l'exacte coûte une permission spéciale car elle réveille le processeur.
+  Sans elle, le système regroupe l'alarme pour la batterie → ~40 s de retard. Diagnostic
+  fait **en lisant la source native du module**, pas en devinant : la branche
+  `canScheduleExactAlarms()` de `ExpoSchedulingDelegate` disait tout.
 - **Rappel utile** : les appels asynchrones en rafale (taps répétés) veulent une **file
   de promesses**, sinon une annulation peut arriver après la planification qu'elle visait.
 
@@ -46,9 +51,13 @@ construction* — le ref `manualStop` a disparu. Piège évité de justesse : un
 rejouer le carillon avant le démontage (latch `hasEnded`). Et un faux positif marrant :
 `tsc` a craché 30 erreurs parce que mon shell était resté dans `node_modules/`.
 
-**Prochaine fois.** Valider les 9 scénarios sur le téléphone (notif écran verrouillé, app
-tuée, silence après STOP, refus de permission). Puis icône/splash, et le **development
-build** — qui débloque d'un coup Skia *et* le carillon comme son de notification.
+**Vérifié sur le téléphone.** Notif écran verrouillé ✅, app tuée ✅, reprise du compteur à
+la réouverture ✅, silence après un STOP ✅, pas de double son quand ça finit app ouverte ✅.
+Restent les taps en rafale et le refus de permission.
+
+**Prochaine fois.** Finir les deux derniers tests, puis icône/splash. Et le **development
+build**, qui débloque d'un coup trois choses : l'alarme exacte pour tous les utilisateurs,
+le carillon comme son de notification, et Skia pour le fond liquide.
 
 ## 2026-08-08 — De la page blanche à l'app aboutie (grosse session)
 

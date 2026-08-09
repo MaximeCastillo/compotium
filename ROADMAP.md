@@ -6,8 +6,9 @@ Relire en début de session. Retirer un item dès qu'il est livré (le résumer 
 ## En cours
 
 - [ ] Ressenti sur téléphone : valider double-tap stop, carillon, durée réglable.
-- [ ] **Valider le timer en arrière-plan sur le téléphone** : notif écran verrouillé,
-  notif app tuée, reprise du compteur à la réouverture, silence après un STOP.
+- [ ] **Valider le timer en arrière-plan** : restent le test « taps en rafale = une seule
+  notif à l'heure » et le test « permission refusée = l'app marche quand même ».
+  ⚠️ Prérequis dev : accorder « Alarmes et rappels » à Expo Go (voir `DECISIONS.md`).
 
 ## À faire (prochain — MVP)
 
@@ -21,6 +22,9 @@ Relire en début de session. Retirer un item dès qu'il est livré (le résumer 
   halo « Gargantua » (style Interstellar : trou sombre, disque lumineux asymétrique).
 - **Son de notification personnalisé** (le carillon au lieu du son système) — exige le
   config plugin `expo-notifications` + un dev build. À grouper avec l'item Skia.
+- ⚠️ **Bloquant avant toute distribution** : déclarer `USE_EXACT_ALARM` dans le manifeste
+  du build natif, sinon les notifications repartent en retard de ~40 s chez tout le monde
+  (voir `DECISIONS.md` du 2026-08-09).
 - V2 : **« Ne pas déranger »** pendant le timer (permission Android ; iOS via Focus/
   Screen Time).
 - Build Android installable hors Expo Go (APK via EAS) ; portage iOS.

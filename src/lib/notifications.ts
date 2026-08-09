@@ -48,7 +48,15 @@ async function ensureAndroidChannel(): Promise<void> {
   });
 }
 
-/** Hand the deadline to the OS, which rings even if the app is asleep or killed. */
+/**
+ * Hand the deadline to the OS, which rings even if the app is asleep or killed.
+ *
+ * On Android 12+ the delivery is only punctual when the app may schedule *exact*
+ * alarms; without that permission the system silently downgrades to an inexact
+ * alarm and batches it, which lands the notification tens of seconds late. A
+ * native build must therefore declare `USE_EXACT_ALARM` — Compotium is a timer,
+ * which is what that permission is reserved for.
+ */
 export async function scheduleSessionEnd(endsAt: number): Promise<void> {
   if (!(await ensureNotificationPermission())) return;
   await ensureAndroidChannel();
