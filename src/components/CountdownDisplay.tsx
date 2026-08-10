@@ -1,10 +1,9 @@
-import { BlurMask, Canvas, Group, matchFont, Text as SkiaText, type SkFont } from '@shopify/react-native-skia';
-import { useEffect, useMemo, useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
-import {
+import { useEffect, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import Animated, {
   Easing,
   runOnJS,
-  useDerivedValue,
+  useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withTiming,
@@ -19,183 +18,163 @@ type CountdownDisplayProps = {
   isRunning: boolean;
 };
 
+const DIGIT_WIDTH = 52;
+const DIGIT_HEIGHT = 96;
 const FONT_SIZE = 80;
-const SLOT = 52;
-const COLON_SLOT = 26;
-const HEIGHT = 128; // taller than the glyphs, so blur has room to spread
-const BASELINE = 96;
 
-const DISSOLVE_MS = durations.digitDissolve;
-const MAX_BLUR = 9; // only ever reached mid-transition
-
-/**
- * `matchFont` defaults to the family "System", which is an iOS name — on Android
- * nothing matches it, the font comes back with no typeface, and text silently
- * draws nothing. So we try real family names and check that one actually landed.
- */
-const FONT_FAMILIES = Platform.select({
-  android: ['sans-serif', 'Roboto', 'Noto Sans'],
-  ios: ['Helvetica Neue', 'Helvetica', 'System'],
-  default: ['System'],
-});
-
-function resolveFont(): SkFont | null {
-  for (const fontFamily of FONT_FAMILIES) {
-    try {
-      const candidate = matchFont({ fontFamily, fontSize: FONT_SIZE, fontWeight: '200' });
-      if (candidate.getTypeface()) return candidate;
-    } catch {
-      // try the next family
-    }
-  }
-  return null;
-}
+// Trailing copies of the glyph, drifting further and faster than the one before.
+// Three reads as vapour; more just costs nodes without adding to the illusion.
+const TRAIL = [
+  { rise: 26, drift: -5, peak: 0.5 },
+  { rise: 44, drift: 6, peak: 0.3 },
+  { rise: 64, drift: -3, peak: 0.16 },
+];
 
 /**
  * The time, dissolving rather than ticking.
  *
- * A changing digit blurs out and drifts up until it is gone, the character is
- * swapped while nothing is visible, then it condenses back. One glyph exists per
- * slot at any instant, so two characters can never overlap — the old ghosting
- * bug is structurally impossible.
+ * A changing digit lifts and fades while trailing copies of itself rise faster
+ * and thin out behind it, so it appears to disperse upward. The character is
+ * swapped while nothing is visible, then it settles back.
  *
- * All five glyphs share ONE canvas, and blur sits at zero except during those
- * few hundred milliseconds, so the effect costs nothing at rest.
+ * Deliberately plain React Native text. Drawing it with Skia meant matching a
+ * system font, and when that match failed the countdown vanished outright (see
+ * DECISIONS.md) — this is the app's one indispensable readout, so it is built
+ * from the most boring thing available. It is also cheaper than a blur: only
+ * opacity and transforms, all on the UI thread.
+ *
+ * One character is on screen per slot at any instant, so old and new can never
+ * overlap — the original ghosting bug stays structurally impossible.
  */
 export function CountdownDisplay({ minutes, seconds, isRunning }: CountdownDisplayProps) {
   const colors = useTheme();
   const color = isRunning ? colors.digitBright : colors.digitDim;
 
-  const slots = [SLOT, SLOT, COLON_SLOT, SLOT, SLOT];
-  const width = slots.reduce((total, slot) => total + slot, 0);
-  const centres = useMemo(() => {
-    let cursor = 0;
-    return slots.map((slot) => {
-      const centre = cursor + slot / 2;
-      cursor += slot;
-      return centre;
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const colonPulse = useSharedValue(1);
   useEffect(() => {
     colonPulse.value = withRepeat(
-      withTiming(0.3, { duration: durations.colonPulse / 2, easing: Easing.inOut(Easing.ease) }),
+      withTiming(0.35, { duration: durations.colonPulse / 2, easing: Easing.inOut(Easing.ease) }),
       -1,
       true,
     );
   }, [colonPulse]);
 
-  // Resolved once per launch, so this branch never flips between renders.
-  const font = useMemo(resolveFont, []);
-
-  // The countdown IS the app. If no typeface resolved we show plain text rather
-  // than an empty screen — a missing effect beats a missing timer.
-  if (!font) {
-    return (
-      <View style={[styles.fallbackRow, { height: HEIGHT }]}>
-        <Text style={[styles.fallbackText, { color }]}>
-          {minutes}:{seconds}
-        </Text>
-      </View>
-    );
-  }
-
   return (
-    <Canvas style={[styles.canvas, { width }]} pointerEvents="none">
-      <DissolvingGlyph char={minutes[0]} centre={centres[0]} color={color} font={font} />
-      <DissolvingGlyph char={minutes[1]} centre={centres[1]} color={color} font={font} />
-      <PulsingColon centre={centres[2]} color={color} pulse={colonPulse} font={font} />
-      <DissolvingGlyph char={seconds[0]} centre={centres[3]} color={color} font={font} />
-      <DissolvingGlyph char={seconds[1]} centre={centres[4]} color={color} font={font} />
-    </Canvas>
+    <View style={styles.row}>
+      <DissolvingDigit char={minutes[0]} color={color} />
+      <DissolvingDigit char={minutes[1]} color={color} />
+      <Colon color={color} pulse={colonPulse} />
+      <DissolvingDigit char={seconds[0]} color={color} />
+      <DissolvingDigit char={seconds[1]} color={color} />
+    </View>
   );
 }
 
-function DissolvingGlyph({
-  char,
-  centre,
-  color,
-  font,
-}: {
-  char: string;
-  centre: number;
-  color: string;
-  font: SkFont;
-}) {
+function DissolvingDigit({ char, color }: { char: string; color: string }) {
   const [shown, setShown] = useState(char);
-  // 1 = fully condensed, 0 = fully dissolved (and safe to swap the character).
+  // 1 = settled, 0 = fully dispersed (and safe to swap the character).
   const solidity = useSharedValue(1);
 
   useEffect(() => {
     if (char === shown) return;
     solidity.value = withTiming(
       0,
-      { duration: DISSOLVE_MS, easing: Easing.in(Easing.cubic) },
+      { duration: durations.digitDissolve, easing: Easing.in(Easing.cubic) },
       (finished) => {
         if (finished) runOnJS(setShown)(char);
       },
     );
+    // Only the incoming value should retrigger this.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [char]);
 
   useEffect(() => {
-    // Condense back once the swapped character is on screen.
-    solidity.value = withTiming(1, { duration: DISSOLVE_MS, easing: Easing.out(Easing.cubic) });
+    solidity.value = withTiming(1, {
+      duration: durations.digitDissolve,
+      easing: Easing.out(Easing.cubic),
+    });
   }, [shown, solidity]);
 
-  const opacity = useDerivedValue(() => solidity.value, [solidity]);
-  const blur = useDerivedValue(() => (1 - solidity.value) * MAX_BLUR, [solidity]);
-  const transform = useDerivedValue(
-    () => [{ translateY: (1 - solidity.value) * -14 }, { scale: 0.9 + solidity.value * 0.1 }],
-    [solidity],
-  );
-
-  const width = font.measureText(shown).width;
+  const mainStyle = useAnimatedStyle(() => ({
+    opacity: solidity.value,
+    transform: [
+      { translateY: (1 - solidity.value) * -12 },
+      { scale: 0.92 + solidity.value * 0.08 },
+    ],
+  }));
 
   return (
-    <Group opacity={opacity} transform={transform} origin={{ x: centre, y: BASELINE - FONT_SIZE / 3 }}>
-      <SkiaText x={centre - width / 2} y={BASELINE} text={shown} font={font} color={color}>
-        <BlurMask blur={blur} style="normal" />
-      </SkiaText>
-    </Group>
+    <View style={styles.digitBox}>
+      {TRAIL.map((layer, index) => (
+        <TrailingGlyph key={index} layer={layer} solidity={solidity} char={shown} color={color} />
+      ))}
+      <Animated.Text style={[styles.digit, { color }, mainStyle]}>{shown}</Animated.Text>
+    </View>
   );
 }
 
-function PulsingColon({
-  centre,
+/**
+ * A ghost of the glyph, visible only mid-transition: its opacity follows
+ * solidity × (1 − solidity), which is zero at both ends of the animation and
+ * peaks halfway through. So the smear appears as the digit leaves and is gone
+ * once it has settled — no permanent double image.
+ */
+function TrailingGlyph({
+  layer,
+  solidity,
+  char,
   color,
-  pulse,
-  font,
 }: {
-  centre: number;
+  layer: (typeof TRAIL)[number];
+  solidity: SharedValue<number>;
+  char: string;
   color: string;
-  pulse: SharedValue<number>;
-  font: SkFont;
 }) {
-  const width = font.measureText(':').width;
-  const opacity = useDerivedValue(() => pulse.value, [pulse]);
+  const style = useAnimatedStyle(() => {
+    const dispersing = solidity.value * (1 - solidity.value) * 4; // peaks at 1 mid-way
+    return {
+      opacity: dispersing * layer.peak,
+      transform: [
+        { translateY: (1 - solidity.value) * -layer.rise },
+        { translateX: (1 - solidity.value) * layer.drift },
+        { scale: 1 + (1 - solidity.value) * 0.12 },
+      ],
+    };
+  });
 
-  return (
-    <Group opacity={opacity}>
-      <SkiaText x={centre - width / 2} y={BASELINE - 6} text=":" font={font} color={color} />
-    </Group>
-  );
+  return <Animated.Text style={[styles.digit, styles.ghost, { color }, style]}>{char}</Animated.Text>;
+}
+
+/** The separator, breathing softly once per second. */
+function Colon({ color, pulse }: { color: string; pulse: SharedValue<number> }) {
+  const style = useAnimatedStyle(() => ({ opacity: pulse.value }));
+  return <Animated.Text style={[styles.digit, styles.colon, { color }, style]}>:</Animated.Text>;
 }
 
 const styles = StyleSheet.create({
-  canvas: {
-    height: HEIGHT,
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  fallbackRow: {
+  digitBox: {
+    width: DIGIT_WIDTH,
+    height: DIGIT_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  fallbackText: {
+  digit: {
     fontSize: FONT_SIZE,
     fontWeight: '200',
     fontVariant: ['tabular-nums'],
     letterSpacing: 1,
+    textAlign: 'center',
+  },
+  // Stacked under the real glyph so the trail never shifts the layout.
+  ghost: {
+    position: 'absolute',
+  },
+  colon: {
+    width: 26,
+    marginBottom: 8,
   },
 });
