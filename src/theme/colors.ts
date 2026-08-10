@@ -83,6 +83,6 @@ export const themes: Record<ThemeName, Palette> = { spatial, solar };
 export const durations = {
   backgroundBreath: 5200,
   buttonBreath: 2800,
-  digitDissolve: 240, // long enough for the dissolve to be seen, short enough to stay crisp
+  digitDissolve: 200,
   colonPulse: 1000,
 } as const;
