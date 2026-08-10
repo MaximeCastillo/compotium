@@ -15,9 +15,29 @@ pourquoi : **`DECISIONS.md`**. Plan vivant : **`ROADMAP.md`**.
 ## Stack (décidée — ne pas re-challenger)
 
 **Expo SDK 57** (managed workflow, RN 0.86) · **React Native** · **TypeScript** (strict). Base
-`blank-typescript`, un seul écran au MVP. Animations via **React Native Reanimated** et
-retour tactile via **expo-haptics** (ajoutés au moment de construire l'écran).
+`blank-typescript`, un seul écran au MVP. Retour tactile via **expo-haptics**.
 **Expo Router** repoussé au 1ᵉʳ 2ᵉ écran (YAGNI — voir `DECISIONS.md`).
+
+**Rendu et animation** — **Skia** dessine le **fond** et les **chiffres** ; le halo du
+bouton `+` reste en **react-native-svg** (l'éclipse validée, voir `DECISIONS.md`).
+**Reanimated 4 + worklets** animent **sur le thread d'UI** ; **Gesture Handler** gère les
+gestes. L'UI structurelle reste en composants React Native.
+
+**La fluidité prime sur l'effet** (règle tranchée le 2026-08-09) : aucun flou au repos ;
+un shader se **construit une fois et se déplace par transformation** (l'animer par son
+centre le reconstruit à chaque image) ; un effet coûteux n'est admis que **pendant une
+transition**.
+
+Trois pièges qui échouent **en silence** — d'où la règle : vérifier que ça a marché,
+ne pas supposer.
+
+- Sans **`GestureHandlerRootView`** à la racine, aucun geste ne se déclenche, sans erreur.
+- **Ne pas écrire de `babel.config.js`** : `babel-preset-expo` injecte déjà le plugin
+  worklets, et un fichier manuel ne peut pas résoudre le preset (il vit sous
+  `node_modules/expo/node_modules/`) — le bundle casse sur un `transformFile` obscur.
+- **`matchFont` par défaut demande la famille `"System"`**, un nom iOS : sur Android la
+  police revient sans fonte et le texte ne dessine rien. Toujours nommer la famille et
+  vérifier `getTypeface()`.
 **Android d'abord** pour dev/test (pas d'iPhone dispo) ; **iOS gardé ouvert par
 construction** — même code, portage plus tard. Pas de backend au MVP : aucun secret
 côté client.

@@ -2,6 +2,7 @@ import { useKeepAwake } from 'expo-keep-awake';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { CountdownDisplay } from './src/components/CountdownDisplay';
 import { PulsingBackground } from './src/components/PulsingBackground';
@@ -25,44 +26,48 @@ export default function App() {
   useEndNotification(endsAt);
 
   return (
-    <SafeAreaProvider>
-      <ThemeProvider value={themes[themeName]}>
-        <View style={styles.root}>
-          <PulsingBackground />
-          <StatusBar style="light" />
+    // Gesture Handler needs this at the very root: without it gestures simply
+    // never fire, silently and with no warning.
+    <GestureHandlerRootView style={styles.root}>
+      <SafeAreaProvider>
+        <ThemeProvider value={themes[themeName]}>
+          <View style={styles.root}>
+            <PulsingBackground />
+            <StatusBar style="light" />
 
-          {/* Keep the screen awake only while it matters: a running timer + the setting on. */}
-          {keepAwake && isRunning && <KeepScreenAwake />}
+            {/* Keep the screen awake only while it matters: a running timer + the setting on. */}
+            {keepAwake && isRunning && <KeepScreenAwake />}
 
-          <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-            <View style={styles.topBar}>
-              <SettingsButton onPress={() => setSettingsOpen(true)} />
-            </View>
+            <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+              <View style={styles.topBar}>
+                <SettingsButton onPress={() => setSettingsOpen(true)} />
+              </View>
 
-            <View style={styles.content}>
-              <CountdownDisplay minutes={minutes} seconds={seconds} isRunning={isRunning} />
-              <TapButton isRunning={isRunning} amount={tapAmount} unit={tapUnit} onPress={addTime} />
-              <StopButton running={isRunning} onStop={reset} />
-            </View>
-          </SafeAreaView>
+              <View style={styles.content}>
+                <CountdownDisplay minutes={minutes} seconds={seconds} isRunning={isRunning} />
+                <TapButton isRunning={isRunning} amount={tapAmount} unit={tapUnit} onPress={addTime} />
+                <StopButton running={isRunning} onStop={reset} />
+              </View>
+            </SafeAreaView>
 
-          <SettingsSheet
-            visible={settingsOpen}
-            keepAwake={keepAwake}
-            onToggleKeepAwake={setKeepAwake}
-            tapAmount={tapAmount}
-            onChangeTapAmount={setTapAmount}
-            tapUnit={tapUnit}
-            onChangeTapUnit={setTapUnit}
-            themeName={themeName}
-            onChangeTheme={setThemeName}
-            soundLength={soundLength}
-            onChangeSound={setSoundLength}
-            onClose={() => setSettingsOpen(false)}
-          />
-        </View>
-      </ThemeProvider>
-    </SafeAreaProvider>
+            <SettingsSheet
+              visible={settingsOpen}
+              keepAwake={keepAwake}
+              onToggleKeepAwake={setKeepAwake}
+              tapAmount={tapAmount}
+              onChangeTapAmount={setTapAmount}
+              tapUnit={tapUnit}
+              onChangeTapUnit={setTapUnit}
+              themeName={themeName}
+              onChangeTheme={setThemeName}
+              soundLength={soundLength}
+              onChangeSound={setSoundLength}
+              onClose={() => setSettingsOpen(false)}
+            />
+          </View>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 
