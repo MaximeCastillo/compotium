@@ -213,3 +213,39 @@ détecteur de geste.
 c'est ce qui garantit que le glissement ne vole pas les appuis du stepper et du champ de
 saisie. `PanResponder` n'a pas d'arbitrage — il aurait fallu bricoler. Piège retenu :
 sans `GestureHandlerRootView` à la racine, **aucun geste ne se déclenche, sans erreur**.
+
+## 2026-08-09 — Retour à l'éclipse : la référence est le produit, pas le film
+
+**Contexte.** Le halo « Gargantua » a été construit puis testé : deux tentatives (flou large,
+puis anneaux nets par ordre de dessin) ont été jugées moins bonnes que la corona
+« éclipse » SVG qui existait avant Skia.
+**Décision.** On **restaure l'éclipse** (dégradé radial à arrêts serrés, en `react-native-svg`)
+et on abandonne Gargantua. Cette entrée remplace l'ambition « halo Gargantua » de la
+roadmap. Skia reste pour le **fond** et les **chiffres**.
+**Pourquoi.** L'app avait déjà **sa** signature visuelle, validée avec les palettes.
+Gargantua était une idée de roadmap, pas une amélioration : partir d'une référence externe
+a fait perdre l'identité du produit. Leçon retenue : quand une version existante est
+validée, on la restaure depuis git au lieu de la réécrire de mémoire.
+
+## 2026-08-09 — La fluidité prime sur l'effet
+
+**Contexte.** La première passe Skia (bruit fractal plein écran + flous larges permanents +
+particules) a rendu l'app non fluide. L'auteur a tranché : « la fluidité prime ».
+**Décision.** Règles tenues pour le décor animé : **aucun flou au repos** ; un shader est
+**construit une fois et déplacé par transformation**, jamais animé par son centre (ça le
+reconstruit à chaque image) ; un effet coûteux n'est admis que **pendant une transition**
+(le flou des chiffres est à zéro le reste du temps). Les particules du STOP sont supprimées.
+**Pourquoi.** Le produit sert à se poser (`PRINCIPLES.md` : « calme visuel ») — une saccade
+ruine l'intention bien plus qu'un effet manquant ne l'appauvrit.
+
+## 2026-08-09 — Le compteur ne doit jamais pouvoir disparaître
+
+**Contexte.** Passé en texte Skia, le compte à rebours est devenu **invisible** :
+`matchFont` utilise par défaut la famille `"System"`, un nom iOS ; sur Android rien ne
+correspond, la police revient sans fonte et le texte ne dessine rien — **sans erreur**.
+**Décision.** Familles réelles par plateforme, **vérification** que `getTypeface()` a
+répondu, et **repli en texte natif** si aucune ne résout.
+**Pourquoi.** Le compte à rebours *est* l'application. Un effet manquant doit toujours
+battre un timer manquant. Troisième échec silencieux de la journée après
+`GestureHandlerRootView` et le plugin Babel : dans cet écosystème, on vérifie que ça a
+marché, on ne suppose pas.

@@ -5,11 +5,9 @@ Relire en début de session. Retirer un item dès qu'il est livré (le résumer 
 
 ## En cours
 
-- [ ] **Valider le design Skia** (branche `design-skia`) — fond nébuleuse, halo
-  « Gargantua », particules au STOP, glissement du panneau de réglages + croix.
-  Points sensoriels à juger : **fluidité** (le fond a déjà causé des micro-freezes),
-  tenue du design dans **les deux thèmes**, et **chauffe** après 10 min. Fusionner
-  seulement après.
+- [ ] Juger le **dosage de la dissolution des chiffres** (le seul point de design encore
+  non validé — ils étaient invisibles au premier essai).
+- [ ] Vérifier la tenue du design dans **les deux thèmes**, et la **chauffe** après 10 min.
 - [ ] Ressenti sur téléphone : valider double-tap stop, carillon, durée réglable.
 
 ## À faire (prochain — MVP)
@@ -36,9 +34,11 @@ Relire en début de session. Retirer un item dès qu'il est livré (le résumer 
 - 2026-08-09 : **Dépôt privé GitHub** (`MaximeCastillo/compotium`).
 - 2026-08-09 : **Panneau de réglages fermable** — glissement vers le bas (Gesture Handler
   + Reanimated, sur le thread d'UI) et croix de fermeture. La poignée n'était que décor.
-- 2026-08-09 : **Direction artistique Skia** — fond nébuleuse (bruit fractal + auras
-  déphasées), halo « Gargantua » sur le bouton `+` (disque d'accrétion asymétrique, anneau
-  de photons, arc vertical), désintégration en vraies particules au STOP.
+- 2026-08-09 : **Fond et chiffres en Skia** — fond aux auras déphasées (shaders statiques
+  déplacés par transformation, zéro flou au repos) et **chiffres qui se dissolvent**
+  (flou uniquement pendant la transition). L'éclipse SVG du bouton `+` est conservée, et
+  Gargantua comme les particules du STOP sont abandonnés : la fluidité et l'identité déjà
+  validée ont primé (voir `DECISIONS.md`).
 - 2026-08-09 : **Migration Expo SDK 54 → 57** (RN 0.81 → 0.86), palier par palier.
   Fin de la taxe de décalage de versions ; permissions de service audio en avant-plan
   retirées au passage.

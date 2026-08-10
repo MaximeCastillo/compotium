@@ -18,9 +18,12 @@ Format :
 ## 2026-08-09 — Dessiner avec un moteur graphique
 
 **Construit.** Le dépôt privé GitHub. Un panneau de réglages qui **se ferme** (glissement
-vers le bas + croix) — sa poignée n'avait jamais été qu'un dessin. Et la direction
-artistique : fond nébuleuse en bruit fractal, halo **« Gargantua »** sur le bouton `+`,
-désintégration en vraies particules au STOP. Palettes intactes.
+vers le bas + croix) — sa poignée n'avait jamais été qu'un dessin. Un fond Skia aux auras
+déphasées et des **chiffres qui se dissolvent**. Palettes intactes.
+
+**Abandonné après essai** : le halo « Gargantua » (deux tentatives, moins bonnes que
+l'éclipse SVG existante → restaurée depuis git) et les particules du STOP (« ça fait
+jeu »). Le bruit fractal plein écran aussi, qui rendait l'app non fluide.
 
 **Appris.**
 - 🆕 **SVG décrit, Skia dessine.** SVG est une liste d'objets que le système rasterise ;
@@ -29,23 +32,34 @@ désintégration en vraies particules au STOP. Palettes intactes.
 - 🆕 **Le thread d'UI.** Reanimated compile les fonctions d'animation en **worklets** qui
   tournent hors du JS. C'est ce qui rend un geste fluide même quand le JS travaille — et
   c'est la vraie réponse au « JS gelé » croisé toute la journée sur le timer.
-- 🆕 **L'ordre de dessin fait le volume.** Le halo n'est lisible comme trou noir que parce
-  que le disque est peint *avant* le cœur, puis l'arc vertical *après*. Il a fallu que
-  Skia peigne aussi le bouton — une vue native au-dessus aurait masqué la partie censée
-  passer devant.
+- 🆕 **Un shader animé se reconstruit, un shader déplacé est gratuit.** Animer le centre
+  d'un dégradé le recompile 60 fois par seconde ; le construire une fois et le bouger par
+  transformation ne coûte presque rien. C'est ce qui a rendu l'app fluide à nouveau — la
+  même astuce que la version SVG utilisait déjà.
+- 🆕 **Un effet permanent et un effet de transition n'ont pas le même prix.** Le flou des
+  chiffres est cher, mais il ne dure que 200 ms et vaut zéro au repos. Le bruit fractal
+  était payé à chaque image, pour toujours.
 - 🆕 **Un geste sans arbitrage vole les appuis.** Gesture Handler arbitre nativement ; j'ai
   quand même sorti la croix de la zone de geste, parce que la meilleure gestion d'un
   conflit reste de ne pas le créer.
 - 🆕 **Le JS est gratuit, le natif non.** Le build lancé avant d'écrire une ligne de design
-  contient tout le nécessaire : il n'embarque que les modules natifs, le JS vient de Metro.
+  contenait déjà tout le nécessaire : il n'embarque que les modules natifs, le JS vient de
+  Metro. Toutes les itérations visuelles ensuite ont été instantanées.
+- **La référence, c'est le produit.** Gargantua venait d'une image de film ; l'éclipse
+  venait de Compotium. Deux tentatives pour comprendre qu'une identité déjà validée ne se
+  remplace pas par une ambition. Et qu'on la **restaure depuis git** plutôt que de la
+  réécrire de mémoire.
 
-**Victoires / galères.** Un `babel.config.js` écrit « par précaution » a cassé le bundle
-sur un `transformFile` incompréhensible — le preset Expo injecte déjà le plugin worklets,
-et le fichier manuel ne pouvait pas le résoudre. Diagnostic en écartant le fichier plutôt
-qu'en lisant l'erreur : parfois le test le plus bête est le plus rapide.
+**Victoires / galères.** Trois échecs **silencieux** dans la même session, et c'est la
+vraie leçon : un `babel.config.js` écrit « par précaution » a cassé le bundle sur un
+`transformFile` incompréhensible ; `GestureHandlerRootView` oublié ne déclenche aucun
+geste sans rien dire ; et `matchFont` demande par défaut la famille `"System"`, un nom
+iOS — sur Android le compteur a purement **disparu**, sans erreur. Dans cet écosystème,
+on vérifie que ça a marché ; on ne suppose pas. D'où le repli en texte natif : le compte à
+rebours *est* l'app.
 
-**Prochaine fois.** Juger le rendu sur le téléphone — fluidité, tenue dans les deux
-thèmes, chauffe. Puis le carillon en son de notification.
+**Prochaine fois.** Juger le dosage de la dissolution des chiffres, la tenue dans les deux
+thèmes et la chauffe. Puis le carillon en son de notification.
 
 ## 2026-08-09 — Rattraper trois SDK d'un coup
 
