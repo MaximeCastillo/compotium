@@ -39,3 +39,7 @@ Prototype personnel, Android d'abord, iOS gardé ouvert par construction. L'app 
 npm install
 npx expo start          # nécessite le development build installé sur le téléphone
 ```
+
+---
+
+© 2026 Maxime Castillo — tous droits réservés. Le code est visible pour présenter mon travail ; il n’est pas sous licence open source.
